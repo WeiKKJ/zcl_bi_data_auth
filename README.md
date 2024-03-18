@@ -1,7 +1,7 @@
 # 关于这项服务的使用说明
 这是一个获取SAP的ALV报表和底表数据的HTTP接口服务。  
   
-它以 ICF 服务的形式提供此接口，在此系统中，此服务已分配给 ICF 服务[/sap/bc/zsicf_bi](http://vhcala4hci:50000/sap/bc/zsicf_bi "调用地址")。  
+它以 ICF 服务的形式提供此接口，在此系统中，此服务已分配给 ICF 服务[/sap/bc/zsicf_bi](http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=001 "调用地址")。  
 ## 部署
 通过abapgit部署
 
@@ -19,7 +19,7 @@
 该服务提供了三类方法：获取ALV报表选择屏幕参数、获取ALV报表数据、获取底表数据，具体请求示例请查看下面的详细介绍。
 ## 获取ALV报表选择屏幕参数
 
-请求地址：[http://vhcala4hci:50000/sap/bc/zsicf_bi?tcode=[tcode]](http://vhcala4hci:50000/sap/bc/zsicf_bi?tcode=%5Btcode%5D%5D "获取ALV报表选择屏幕参数")
+请求地址：[http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=001&tcode=[tcode]](http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=001&tcode=%5Btcode%5D%5D "获取ALV报表选择屏幕参数")
 
 请求方法：POST
 
@@ -45,7 +45,7 @@ Content-Type: "application/x-www-form-urlencoded"
 	}
 
 ## 获取ALV报表数据
-请求地址：[http://vhcala4hci:50000/sap/bc/zsicf_bi?tcode=[tcode]](http://vhcala4hci:50000/sap/bc/zsicf_bi?tcode=%5Btcode%5D%5D "获取ALV报表数据")
+请求地址：[http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=001&tcode=[tcode]](http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=001&tcode=%5Btcode%5D%5D "获取ALV报表数据")
 
 请求方法：POST
 
@@ -85,7 +85,7 @@ content-type: "application/json;charset=utf-8"
 	}
 
 ## 获取底表数据
-请求地址：[http://vhcala4hci:50000/sap/bc/zsicf_bi?tabname=[tabname]](http://vhcala4hci:50000/sap/bc/zsicf_bi?tabname=%5Btabname%5D%5D "获取底表数据")
+请求地址：[http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=001&tabname=[tabname]](http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=001&tabname=%5Btabname%5D%5D "获取底表数据")
 
 请求方法：POST
 
