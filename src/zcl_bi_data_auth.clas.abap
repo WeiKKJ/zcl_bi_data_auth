@@ -187,15 +187,17 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
       "   &7   data
       "   &8   rsparams
       server->response->set_header_field( name = 'Content-Type' value = 'application/json;charset=utf-8' ).
+*      server->response->set_status( code = &2  reason = &3 ).
+      "不知道为啥有的环境设置非200的http status code就不能正常返回消息
+      IF &2 IS NOT INITIAL.
+        server->response->set_status( code = 200  reason = &3 ).
+      ENDIF.
       CASE &1.
         WHEN 'DATA'.
-          server->response->set_status( code = &2  reason = &3 ).
           CONCATENATE `{"rtype":"` &4 `", "rtmsg":"` &5 `", "mapping":` &6 `, "data":` &7 `}` INTO json.
         WHEN 'AUTH'.
-          server->response->set_status( code = &2  reason = &3 ).
           CONCATENATE `{"rtype":"` &4 `", "rtmsg":"` &5 `"}` INTO json.
         WHEN 'RSPARAMS'.
-          server->response->set_header_field( name = 'Content-Type' value = 'application/json;charset=utf-8' ).
           CONCATENATE `{"rtype":"` &4 `", "rtmsg":"` &5 `", "rsparams":` &8 `}` INTO json.
       ENDCASE.
       server->response->set_cdata( EXPORTING data   = json ).
@@ -239,6 +241,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
         ENDIF.
         IF tcode IS NOT INITIAL.
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TCD' FIELD tcode.
+*          AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TCODE' FIELD tcode.
           IF sy-subrc NE 0.
             rtmsg = `你没有事务码` && tcode && `的权限`.
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
@@ -274,6 +277,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
           ENDIF.
         ELSEIF tabname IS NOT INITIAL.
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TABLE' FIELD tabname.
+*          AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TABLE' FIELD tabname.
           IF sy-subrc NE 0.
             rtmsg = `你没有底表` && tabname && `的权限` .
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
@@ -323,7 +327,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 `<body class="stackedit">`
 `  <div class="stackedit__html"><h1 id="关于这项服务的使用说明">关于这项服务的使用说明</h1>`
 `<p>这是一个获取SAP的ALV报表和底表数据的HTTP接口服务。</p>`
-`<p>它以 ICF 服务的形式提供此接口，在此系统中，此服务已分配给 ICF 服务<a href="` me->my_url me->my_service `" title="调用地址">` me->my_service `</a>。</p>`
+`<p>它以 ICF 服务的形式提供此接口，在此系统中，此服务已分配给 ICF 服务<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `" title="调用地址">` me->my_service `</a>。</p>`
 `<h2 id="权限检查">权限检查</h2>`
 `<p>该服务包含一个对名为 ZBI_AUTH 的自定义授权对象的 AUTHORITY-CHECK OBJECT调用，用于验证用户是否可以访问事务码或者底表,需要为每个访问该服务的用户都创建一个单独的角色，其中只有允许他访问的功能。<br>`
 `<strong>权限对象</strong>：<br>`
@@ -332,7 +336,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 `<img src="https://s21.ax1x.com/2024/03/16/pF2lLI1.jpg" alt="pF2lLI1.jpg"></p>`
 `<p>该服务提供了三类方法：获取ALV报表选择屏幕参数、获取ALV报表数据、获取底表数据，具体请求示例请查看下面的详细介绍。</p>`
 `<h2 id="获取alv报表选择屏幕参数">获取ALV报表选择屏幕参数</h2>`
-`<p>请求地址：<a href="` me->my_url me->my_service `?tcode=%5Btcode%5D%5D" title="获取ALV报表选择屏幕参数">` me->my_url me->my_service `?tcode=[tcode]</a><br>`
+`<p>请求地址：<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `&tcode=%5Btcode%5D%5D" title="获取ALV报表选择屏幕参数">` me->my_url me->my_service `?sap-client=` sy-mandt `&tcode=[tcode]</a><br>`
 `请求方法：POST<br>`
 `Content-Type: "application/x-www-form-urlencoded"<br>`
 `请求体: action: "rsparams"<br>`
@@ -353,7 +357,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 `}`
 `</code></pre>`
 `<h2 id="获取alv报表数据">获取ALV报表数据</h2>`
-`<p>请求地址：<a href="` me->my_url me->my_service `?tcode=%5Btcode%5D%5D" title="获取ALV报表数据">` me->my_url me->my_service `?tcode=[tcode]</a><br>`
+`<p>请求地址：<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `&tcode=%5Btcode%5D%5D" title="获取ALV报表数据">` me->my_url me->my_service `?sap-client=` sy-mandt `&tcode=[tcode]</a><br>`
 `请求方法：POST<br>`
 `content-type: "application/json;charset=utf-8"<br>`
 `请求体:</p>`
@@ -388,7 +392,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 `}`
 `</code></pre>`
 `<h2 id="获取底表数据">获取底表数据</h2>`
-`<p>请求地址：<a href="` me->my_url me->my_service `?tabname=%5Btabname%5D%5D" title="获取底表数据">` me->my_url me->my_service `?tabname=[tabname]</a><br>`
+`<p>请求地址：<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `&tabname=%5Btabname%5D%5D" title="获取底表数据">` me->my_url me->my_service `?sap-client=` sy-mandt `&tabname=[tabname]</a><br>`
 `请求方法：POST<br>`
 `返回消息结构：</p>`
 `<pre><code>{`
