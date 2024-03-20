@@ -102,7 +102,8 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
         IF <mem>-sign NOT IN  sign_range.
           rtmsg = 'tcode:' && tcode && '选择屏幕参数:' &&  <group>-selname && '的SIGN值:' && <mem>-sign && '配置不正确'.
           fillmsg 'E' rtmsg.
-        ELSEIF <mem>-option NOT IN option_range.
+        ENDIF.
+        IF <mem>-option NOT IN option_range.
           rtmsg = 'tcode:' && tcode && '选择屏幕参数:' &&  <group>-selname && '的OPTION值:' && <mem>-option && '配置不正确'.
           fillmsg 'E' rtmsg.
         ENDIF.
