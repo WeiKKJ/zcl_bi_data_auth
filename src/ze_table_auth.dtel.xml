@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_DTEL" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <DD04V>
+    <ROLLNAME>ZE_TABLE_AUTH</ROLLNAME>
+    <DDLANGUAGE>1</DDLANGUAGE>
+    <DOMNAME>ZD_TABLE_AUTH</DOMNAME>
+    <HEADLEN>09</HEADLEN>
+    <SCRLEN1>09</SCRLEN1>
+    <SCRLEN2>09</SCRLEN2>
+    <SCRLEN3>09</SCRLEN3>
+    <DDTEXT>TABNAME权限</DDTEXT>
+    <REPTEXT>TABNAME权限</REPTEXT>
+    <SCRTEXT_S>TABNAME权限</SCRTEXT_S>
+    <SCRTEXT_M>TABNAME权限</SCRTEXT_M>
+    <SCRTEXT_L>TABNAME权限</SCRTEXT_L>
+    <DTELMASTER>1</DTELMASTER>
+    <REFKIND>D</REFKIND>
+   </DD04V>
+  </asx:values>
+ </asx:abap>
+</abapGit>

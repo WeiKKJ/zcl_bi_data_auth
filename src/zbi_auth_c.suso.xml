@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_SUSO" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <TOBJ>
+    <OBJCT>ZBI_AUTH_C</OBJCT>
+    <FIEL1>ZE_TCODE</FIEL1>
+    <FIEL2>ZE_TABLE</FIEL2>
+    <OCLSS>ZBI</OCLSS>
+   </TOBJ>
+   <TOBJT>
+    <LANGU>1</LANGU>
+    <OBJECT>ZBI_AUTH_C</OBJECT>
+    <TTEXT>ZCL_BI_DATA_AUTH自定义权限对象检查</TTEXT>
+   </TOBJT>
+   <TOBJVORFLG>
+    <OBJCT>ZBI_AUTH_C</OBJCT>
+   </TOBJVORFLG>
+  </asx:values>
+ </asx:abap>
+</abapGit>
