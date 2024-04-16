@@ -1,6 +1,6 @@
-FUNCTION ZFM_BI_DATA_ALV_GET.
-*"--------------------------------------------------------------------
-*"*"局部接口：
+FUNCTION zfm_bi_data_alv_get.
+*"----------------------------------------------------------------------
+*"*"本地接口：
 *"  IMPORTING
 *"     VALUE(TCODE) TYPE  SY-TCODE
 *"     VALUE(IN_JSON) TYPE  STRING OPTIONAL
@@ -9,7 +9,7 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
 *"     VALUE(RTMSG) TYPE  BAPI_MSG
 *"     VALUE(OUT_JSON) TYPE  STRING
 *"     VALUE(OUT_MAPPING_JSON) TYPE  STRING
-*"--------------------------------------------------------------------
+*"----------------------------------------------------------------------
   zfmdatasave1 'ZFM_BI_DATA_ALV_GET'.
   zfmdatasave2 'B'.
   COMMIT WORK.
@@ -37,7 +37,7 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
   AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TCD' FIELD tcode.
 *  AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TCODE' FIELD tcode.
   IF sy-subrc NE 0.
-    rtmsg = `你没有事务码` && tcode && `的权限` .
+    rtmsg = |你没有事务码{ tcode }的权限|.
     fillmsg 'E' rtmsg.
   ENDIF.
   SELECT SINGLE * FROM tstc
@@ -45,7 +45,7 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
     INTO @DATA(wa_tstc)
           .
   IF sy-subrc NE 0.
-    rtmsg = 'tcode:' && tcode && '不存在'.
+    rtmsg = |tcode:{ tcode }不存在|.
     fillmsg 'E' rtmsg.
   ENDIF.
   CALL FUNCTION 'RS_REFRESH_FROM_SELECTOPTIONS'
@@ -61,7 +61,7 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
       no_report       = 2
       OTHERS          = 3.
   IF sy-subrc <> 0.
-    rtmsg = 'tcode:' && tcode && '获取选择屏幕参数出现问题'.
+    rtmsg = |tcode:{ tcode }获取选择屏幕参数出现问题|.
     fillmsg 'E' rtmsg.
   ENDIF.
   sign_range = VALUE #( sign = 'I' option = 'EQ'
@@ -83,6 +83,12 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
 
   CLEAR seltab.
   /ui2/cl_json=>deserialize( EXPORTING json = in_json CHANGING data = seltab ).
+  " BODY传递了内容但是匹配不到内表不允许往下执行了  16.04.2024 18:18:10 by kkw
+  DELETE seltab WHERE selname IS INITIAL.
+  IF in_json IS NOT INITIAL AND seltab IS INITIAL.
+    rtmsg = 'BODY内容无法匹配选择屏幕参数'.
+    fillmsg 'E' rtmsg.
+  ENDIF.
 
   "校验屏幕参数
   LOOP AT seltab ASSIGNING FIELD-SYMBOL(<seltab>) GROUP BY ( selname = <seltab>-selname kind = <seltab>-kind
@@ -90,21 +96,21 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
     ) ASSIGNING FIELD-SYMBOL(<group>).
     READ TABLE gt_rsparams ASSIGNING FIELD-SYMBOL(<gt_rsparams>) WITH KEY selname = <group>-selname kind = <group>-kind.
     IF sy-subrc NE 0.
-      rtmsg = 'tcode:' && tcode && '选择屏幕参数:' && <group>-selname && '类型:' && <group>-kind && '不存在'.
+      rtmsg = |tcode:{ tcode }选择屏幕参数:{ <group>-selname }，类型:{ <group>-kind }，不存在'|.
       fillmsg 'E' rtmsg.
     ELSE.
       IF <group>-kind = 'P' AND <group>-size NE 1.
-        rtmsg = 'tcode:' && tcode && '选择屏幕参数:' && <group>-selname && '类型:' && <group>-kind && '不能赋值' && <group>-size && '次'.
+        rtmsg = |tcode:{ tcode }选择屏幕参数:{ <group>-selname }，类型:{ <group>-kind }，不能赋值{ <group>-size }次|.
         fillmsg 'E' rtmsg.
       ENDIF.
       LOOP AT GROUP <group> ASSIGNING FIELD-SYMBOL(<mem>).
         "判断sign和option赋值是否正确
         IF <mem>-sign NOT IN  sign_range.
-          rtmsg = 'tcode:' && tcode && '选择屏幕参数:' &&  <group>-selname && '的SIGN值:' && <mem>-sign && '配置不正确'.
+          rtmsg = |tcode:{ tcode }选择屏幕参数:{ <group>-selname }的SIGN值:{ <mem>-sign }配置不正确|.
           fillmsg 'E' rtmsg.
         ENDIF.
         IF <mem>-option NOT IN option_range.
-          rtmsg = 'tcode:' && tcode && '选择屏幕参数:' &&  <group>-selname && '的OPTION值:' && <mem>-option && '配置不正确'.
+          rtmsg = |tcode:{ tcode }选择屏幕参数:{ <group>-selname }的OPTION值:{ <mem>-option }配置不正确|.
           fillmsg 'E' rtmsg.
         ENDIF.
         "判断low和high赋值是否正确
@@ -114,7 +120,7 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
           WHEN 'S'.
             IF <mem>-high IS NOT INITIAL AND <mem>-low IS NOT INITIAL.
               IF <mem>-high LT <mem>-low.
-                rtmsg = 'tcode:' && tcode && '选择屏幕参数:' &&  <group>-selname && '的上限值:' &&  <mem>-high && '不能小于下限值:' && <mem>-low.
+                rtmsg = |tcode:{ tcode }选择屏幕参数:{ <group>-selname }的上限值:{ <mem>-high }不能小于下限值:{ <mem>-low }|.
                 fillmsg 'E' rtmsg.
               ENDIF.
             ELSEIF <mem>-high IS NOT INITIAL AND <mem>-low IS INITIAL.
@@ -134,6 +140,11 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
   WITH SELECTION-TABLE seltab
   AND RETURN
     .
+  TRY.
+      DATA(gget) = cl_salv_bs_runtime_info=>get( ).
+    CATCH cx_salv_bs_sc_runtime_info.
+
+  ENDTRY.
   "获取报表数据
   TRY .
       cl_salv_bs_runtime_info=>get_data_ref(
@@ -141,7 +152,7 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
     CATCH  cx_salv_bs_sc_runtime_info.
       cl_salv_bs_runtime_info=>clear_all( ).
       rtype = 'E'.
-      rtmsg = '无法获取' && tcode && '的数据'.
+      rtmsg = |无法获取{ tcode }的数据|.
       zfmdatasave2 'R'.
       EXIT.
   ENDTRY.
@@ -170,15 +181,15 @@ FUNCTION ZFM_BI_DATA_ALV_GET.
   IF <fs_tab> IS ASSIGNED.
     rtype = 'S'.
     IF <fs_tab> IS NOT INITIAL.
-      rtmsg = '成功获取' && tcode && '的数据'.
+      rtmsg = |成功获取{ tcode }的数据|.
       out_json = /ui2/cl_json=>serialize( data = <fs_tab>  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
     ELSE.
-      rtmsg = tcode && '空数据'.
+      rtmsg = |{ tcode }空数据|.
     ENDIF.
     UNASSIGN <fs_tab>.
   ELSE.
     rtype = 'S'.
-    rtmsg = tcode && '无数据'.
+    rtmsg = |{ tcode }无数据|.
   ENDIF.
 
   zfmdatasave2 'R'.

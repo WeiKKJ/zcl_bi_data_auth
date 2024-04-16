@@ -35,14 +35,14 @@ FUNCTION zfm_bi_data_table_get .
   AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TABLE' FIELD tabname.
 *  AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TABLE' FIELD tabname.
   IF sy-subrc NE 0.
-    rtmsg = `你没有底表` && tabname && `的权限` .
+    rtmsg = |你没有底表{ tabname }的权限|.
     fillmsg 'E' rtmsg.
   ENDIF.
 
   CLEAR:out_json.
   SELECT COUNT(*) FROM dd02l WHERE tabname = @tabname AND as4local = 'A'.
   IF sy-subrc NE 0.
-    rtmsg = '表名' && tabname && '不存在或处于未激活状态'.
+    rtmsg = |表名{ tabname }不存在或处于未激活状态|.
     fillmsg 'E' rtmsg.
   ENDIF.
   CLEAR:ls_data.
@@ -51,7 +51,7 @@ FUNCTION zfm_bi_data_table_get .
   IF ls_data IS BOUND.
     ASSIGN ls_data->* TO <tab>.
   ELSE.
-    rtmsg = '表名' && tabname && '创建的对象未被有效引用'.
+    rtmsg = |表名{ tabname }创建的对象未被有效引用|.
     fillmsg 'E' rtmsg.
   ENDIF.
 
@@ -62,13 +62,12 @@ FUNCTION zfm_bi_data_table_get .
           ORDER BY PRIMARY KEY
           INTO CORRESPONDING FIELDS OF TABLE @<tab>.
       CATCH: cx_sy_dynamic_osql_semantics,cx_sy_dynamic_osql_syntax,cx_sy_open_sql_db.
-        rtmsg = '表名' && tabname && '查询出错.'.
+        rtmsg = |表名{ tabname }查询出错|.
         fillmsg 'E' rtmsg.
     ENDTRY.
     rtype = 'S'.
     IF <tab> IS NOT INITIAL.
-      rtmsg = '成功获取' && tabname && '的数据'.
-*      out_json = /ui2/cl_json=>serialize( data = <tab>  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-camel_case ).
+      rtmsg = |成功获取{ tabname }的数据|.
       out_json = /ui2/cl_json=>serialize( data = <tab>  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
       " 添加底表字段映射信息  13.03.2024 22:34:58 by kkw
       tablename = tabname.
@@ -91,11 +90,11 @@ FUNCTION zfm_bi_data_table_get .
       ENDLOOP.
       out_mapping_json = /ui2/cl_json=>serialize( data = gt_mapping  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
     ELSE.
-      rtmsg = tabname && '空数据'.
+      rtmsg = |{ tabname }空数据|.
     ENDIF.
     UNASSIGN <tab>.
   ELSE.
-    rtmsg = '表名' && tabname && '所属内表未被成功创建'.
+    rtmsg = |表名{ tabname }所属内表未被成功创建|.
     fillmsg 'E' rtmsg.
   ENDIF.
 

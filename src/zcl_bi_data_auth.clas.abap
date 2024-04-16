@@ -244,7 +244,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TCD' FIELD tcode.
 *          AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TCODE' FIELD tcode.
           IF sy-subrc NE 0.
-            rtmsg = `你没有事务码` && tcode && `的权限`.
+            rtmsg = |你没有事务码{ tcode }的权限|.
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
           ENDIF.
           action = server->request->get_form_field( 'action' ).
@@ -258,10 +258,10 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
                 tcode_not_found = 1
                 OTHERS          = 2.
             IF sy-subrc <> 0.
-              rtmsg = `事务码` && tcode && `不存在`.
+              rtmsg = |事务码{ tcode }不存在|.
               http_msg 'RSPARAMS' 404 'Tcode not found' 'E' rtmsg '' '' '[]'.
             ELSE.
-              rtmsg = `成功获取事务码` && tcode && `的选择屏幕参数`.
+              rtmsg = |成功获取事务码{ tcode }的选择屏幕参数|.
               http_msg 'RSPARAMS' 200 'OK' 'S' rtmsg '' '' rsparams.
             ENDIF.
           ELSE.
@@ -280,7 +280,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TABLE' FIELD tabname.
 *          AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TABLE' FIELD tabname.
           IF sy-subrc NE 0.
-            rtmsg = `你没有底表` && tabname && `的权限` .
+            rtmsg = |你没有底表{ tabname }的权限|.
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
           ENDIF.
           CALL FUNCTION 'ZFM_BI_DATA_TABLE_GET'
