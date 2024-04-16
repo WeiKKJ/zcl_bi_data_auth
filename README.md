@@ -111,7 +111,8 @@ content-type: "application/json;charset=utf-8"
 
 ## 后续计划
 1. 取底表数据添加OPEN SQL查询条件
-2. 想得到再说吧  
+2. 扩展下支持通过http调用RFC接口（完善[cesar-sap/abap_fm_json](https://github.com/cesar-sap/abap_fm_json "")不支持全部参数的缺陷）
+3. 想得到再说吧
   
 ## 联系我
 邮箱：[weikj@foxmail.com](mailto:weikj@foxmail.com "kkw")
