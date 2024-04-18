@@ -29,7 +29,7 @@ FUNCTION zfm_bi_data_alv_get.
          scrtext_s TYPE scrtext_s,
        END OF gs_mapping,
        gt_mapping LIKE TABLE OF gs_mapping.
-
+  CLEAR:rtype,rtmsg,out_json,out_mapping_json.
   IF tcode IS INITIAL.
     rtmsg = 'tcode不能为空'.
     fillmsg 'E' rtmsg.
@@ -162,8 +162,8 @@ FUNCTION zfm_bi_data_alv_get.
     CATCH cx_salv_bs_sc_runtime_info.
       cl_salv_bs_runtime_info=>clear_all( ).
   ENDTRY.
-  ASSIGN ls_data->* TO FIELD-SYMBOL(<fs_tab>).
   cl_salv_bs_runtime_info=>clear_all( ).
+  ASSIGN ls_data->* TO FIELD-SYMBOL(<fs_tab>).
   IF metadata-t_fcat IS NOT INITIAL.
     LOOP AT metadata-t_fcat ASSIGNING FIELD-SYMBOL(<dfies_tab>).
       INSERT INITIAL LINE INTO TABLE gt_mapping ASSIGNING FIELD-SYMBOL(<gt_mapping>).

@@ -84,7 +84,7 @@
        <TYP>TABNAME</TYP>
       </RSIMP>
       <RSIMP>
-       <PARAMETER>WHERESTR</PARAMETER>
+       <PARAMETER>WHERE_JSON</PARAMETER>
        <OPTIONAL>X</OPTIONAL>
        <TYP>STRING</TYP>
       </RSIMP>
@@ -107,6 +107,26 @@
        <TYP>STRING</TYP>
       </RSEXP>
      </EXPORT>
+     <EXCEPTION>
+      <RSEXC>
+       <EXCEPTION>TABLE_NOT_AVAILABLE</EXCEPTION>
+      </RSEXC>
+      <RSEXC>
+       <EXCEPTION>TABLE_WITHOUT_DATA</EXCEPTION>
+      </RSEXC>
+      <RSEXC>
+       <EXCEPTION>OPTION_NOT_VALID</EXCEPTION>
+      </RSEXC>
+      <RSEXC>
+       <EXCEPTION>FIELD_NOT_VALID</EXCEPTION>
+      </RSEXC>
+      <RSEXC>
+       <EXCEPTION>NOT_AUTHORIZED</EXCEPTION>
+      </RSEXC>
+      <RSEXC>
+       <EXCEPTION>DATA_BUFFER_EXCEEDED</EXCEPTION>
+      </RSEXC>
+     </EXCEPTION>
      <DOCUMENTATION>
       <RSFDO>
        <PARAMETER>TABNAME</PARAMETER>
@@ -114,7 +134,7 @@
        <STEXT>表名</STEXT>
       </RSFDO>
       <RSFDO>
-       <PARAMETER>WHERESTR</PARAMETER>
+       <PARAMETER>WHERE_JSON</PARAMETER>
        <KIND>P</KIND>
        <STEXT>查询条件</STEXT>
       </RSFDO>
@@ -137,6 +157,36 @@
        <PARAMETER>OUT_MAPPING_JSON</PARAMETER>
        <KIND>P</KIND>
        <STEXT>字段映射</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>TABLE_NOT_AVAILABLE</PARAMETER>
+       <KIND>X</KIND>
+       <STEXT>QUERY_TABLE nicht aktiv im Dictionary vorhanden</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>TABLE_WITHOUT_DATA</PARAMETER>
+       <KIND>X</KIND>
+       <STEXT>QUERY_TABLE ist Name von Struktur o.ä.</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>OPTION_NOT_VALID</PARAMETER>
+       <KIND>X</KIND>
+       <STEXT>Selektionsangaben (z.B. Syntax) fehlerhaft</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>FIELD_NOT_VALID</PARAMETER>
+       <KIND>X</KIND>
+       <STEXT>zu lesendes Feld gibt es nicht in der Tabelle</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>NOT_AUTHORIZED</PARAMETER>
+       <KIND>X</KIND>
+       <STEXT>Benutzer nicht ber. für Zugriff auf QUERY_TABLE</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>DATA_BUFFER_EXCEEDED</PARAMETER>
+       <KIND>X</KIND>
+       <STEXT>gewählte Felder passen nicht in Struktur DATA</STEXT>
       </RSFDO>
      </DOCUMENTATION>
     </item>

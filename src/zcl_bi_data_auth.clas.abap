@@ -283,15 +283,44 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
             rtmsg = |你没有底表{ tabname }的权限|.
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
           ENDIF.
+          json = server->request->if_http_entity~get_cdata( ).
           CALL FUNCTION 'ZFM_BI_DATA_TABLE_GET'
             EXPORTING
-              tabname          = tabname
-*             wherestr         =
+              tabname              = tabname
+              where_json           = json
             IMPORTING
-              rtype            = rtype
-              rtmsg            = rtmsg
-              out_json         = json
-              out_mapping_json = out_mapping_json.
+              rtype                = rtype
+              rtmsg                = rtmsg
+              out_json             = json
+              out_mapping_json     = out_mapping_json
+            EXCEPTIONS
+              table_not_available  = 1
+              table_without_data   = 2
+              option_not_valid     = 3
+              field_not_valid      = 4
+              not_authorized       = 5
+              data_buffer_exceeded = 6
+              OTHERS               = 7.
+          IF sy-subrc NE 0.
+            CLEAR:json,out_mapping_json.
+            rtype = 'E'.
+            CASE sy-subrc.
+              WHEN 1.
+                rtmsg = |table_not_available|.
+              WHEN 2.
+                rtmsg = |table_without_data|.
+              WHEN 3.
+                rtmsg = |option_not_valid|.
+              WHEN 4.
+                rtmsg = |field_not_valid|.
+              WHEN 5.
+                rtmsg = |not_authorized|.
+              WHEN 6.
+                rtmsg = |data_buffer_exceeded|.
+              WHEN 7.
+                rtmsg = |other error|.
+            ENDCASE.
+          ENDIF.
         ELSE.
           http_msg 'DATA' 412 'Params error' 'E' 'Params键只能是tcode或tabname' '[]' '[]' ''.
         ENDIF.
@@ -395,6 +424,12 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 `<h2 id="获取底表数据">获取底表数据</h2>`
 `<p>请求地址：<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `&tabname=%5Btabname%5D%5D" title="获取底表数据">` me->my_url me->my_service `?sap-client=` sy-mandt `&tabname=[tabname]</a><br>`
 `请求方法：POST<br>`
+`content-type: "application/json;charset=utf-8" <br>`
+`请求体(可选):</p>`
+`<pre><code>{`
+`	"wherestr": "SQL查询条件，不用加where"`
+`}`
+`</code></pre>`
 `返回消息结构：</p>`
 `<pre><code>{`
 `	"rtype": "消息类型: S 成功,E 错误,W 警告,I 信息,A 中断",`
@@ -416,7 +451,8 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 `</code></pre>`
 `<h2 id="后续计划">后续计划</h2>`
 `<ol>`
-`<li>取底表数据添加OPEN SQL查询条件</li>`
+`<li><s>取底表数据添加OPEN SQL查询条件</s></li>`
+`<li>扩展下支持通过http调用RFC接口（完善<a href="https://github.com/cesar-sap/abap_fm_json" title="abap_fm_json">cesar-sap/abap_fm_json</a>不支持全部参数的缺陷）</li>`
 `<li>想得到再说吧</li>`
 `</ol>`
 `<h2 id="联系我">联系我</h2>`
