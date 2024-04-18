@@ -89,6 +89,14 @@ content-type: "application/json;charset=utf-8"
 
 请求方法：POST
 
+content-type: "application/json;charset=utf-8"
+
+请求体(可选):
+
+	{
+		"wherestr": "SQL查询条件，不用加where"
+	}
+ 
 返回消息结构：
 
 	{
@@ -110,7 +118,7 @@ content-type: "application/json;charset=utf-8"
 	}
 
 ## 后续计划
-1. 取底表数据添加OPEN SQL查询条件
+1. ~~取底表数据添加OPEN SQL查询条件~~
 2. 扩展下支持通过http调用RFC接口（完善[cesar-sap/abap_fm_json](https://github.com/cesar-sap/abap_fm_json "")不支持全部参数的缺陷）
 3. 想得到再说吧
   
