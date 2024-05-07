@@ -1,40 +1,39 @@
-CLASS zcl_bi_data_auth DEFINITION
-  PUBLIC
-  FINAL
-  CREATE PUBLIC .
+class ZCL_BI_DATA_AUTH definition
+  public
+  final
+  create public .
 
-  PUBLIC SECTION.
+public section.
 
-    INTERFACES if_http_extension .
-
-    METHODS get_rsparams
-      IMPORTING
-        VALUE(tcode)    TYPE sy-tcode
-      RETURNING
-        VALUE(rsparams) TYPE string
-      EXCEPTIONS
-        tcode_not_found .
+  interfaces IF_HTTP_EXTENSION .
   PROTECTED SECTION.
-  PRIVATE SECTION.
+private section.
 
-    DATA my_service TYPE string .
-    DATA my_url TYPE string .
-    DATA my_params TYPE tihttpnvp .
+  data MY_SERVICE type STRING .
+  data MY_URL type STRING .
+  data MY_PARAMS type TIHTTPNVP .
 
-    METHODS get_query
-      IMPORTING
-        VALUE(query_string) TYPE string
-        VALUE(key)          TYPE string
-      EXPORTING
-        VALUE(value)        TYPE string .
-    METHODS get_params
-      IMPORTING
-        !params          TYPE string
-      RETURNING
-        VALUE(my_params) TYPE tihttpnvp .
-    METHODS notes
-      RETURNING
-        VALUE(text) TYPE string .
+  methods GET_RSPARAMS
+    importing
+      value(TCODE) type SY-TCODE
+    returning
+      value(RSPARAMS) type STRING
+    exceptions
+      TCODE_NOT_FOUND .
+  methods GET_QUERY
+    importing
+      value(QUERY_STRING) type STRING
+      value(KEY) type STRING
+    exporting
+      value(VALUE) type STRING .
+  methods GET_PARAMS
+    importing
+      value(PARAMS) type STRING
+    returning
+      value(MY_PARAMS) type TIHTTPNVP .
+  methods NOTES
+    returning
+      value(TEXT) type STRING .
 ENDCLASS.
 
 
@@ -120,6 +119,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
          rtmsg            TYPE bapi_msg,
          tcode            TYPE sy-tcode,
          tabname          TYPE tabname,
+         funcname         TYPE rs38l_fnam,
          proto            TYPE string,
          host             TYPE string,
          port             TYPE string,
@@ -452,7 +452,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 `<h2 id="后续计划">后续计划</h2>`
 `<ol>`
 `<li><s>取底表数据添加OPEN SQL查询条件</s></li>`
-`<li>扩展下支持通过http调用RFC接口（完善<a href="https://github.com/cesar-sap/abap_fm_json" title="abap_fm_json">cesar-sap/abap_fm_json</a>不支持全部参数的缺陷）</li>`
+`<li>扩展下支持通过http调用RFC接口（完善<a href="https://github.com/cesar-sap/abap_fm_json" title="abap_fm_json">cesar-sap/abap_fm_json</a>不支持全部参数的缺陷），但是感觉这样做意义不是太大。</li>`
 `<li>想得到再说吧</li>`
 `</ol>`
 `<h2 id="联系我">联系我</h2>`
