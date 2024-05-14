@@ -11,3 +11,5 @@ DEFINE fillmsg.
     RETURN.
   ENDIF.
 END-OF-DEFINITION.
+
+DATA:options TYPE TABLE OF rfc_db_opt.

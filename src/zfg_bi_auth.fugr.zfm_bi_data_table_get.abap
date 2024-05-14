@@ -27,109 +27,107 @@ FUNCTION zfm_bi_data_table_get .
     zfmdatasave2 'R'.
     EXIT.
   ENDIF.
+  SELECT COUNT(*) FROM dd02l WHERE tabname = @tabname AND as4local = 'A'.
+  IF sy-subrc NE 0.
+    rtmsg = |表名[{ tabname }]不存在或处于未激活状态|.
+    fillmsg 'E' rtmsg.
+  ENDIF.
 *  调整为逻辑和rfc_read_table类似，添加open sql查询条件  18.04.2024 14:45:59 by kkw
   AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TABLE' FIELD tabname.
 *  AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TABLE' FIELD tabname.
   IF sy-subrc NE 0.
-    rtmsg = |你没有底表{ tabname }的权限|.
+    rtmsg = |你没有底表[{ tabname }]的权限|.
     fillmsg 'E' rtmsg.
   ENDIF.
-  DATA:query_table LIKE  dd02l-tabname,
-       delimiter   LIKE  sonv-flag VALUE space,
-       no_data     LIKE  sonv-flag VALUE space,
-       rowskips    LIKE  soid-accnt VALUE 0,
-       rowcount    LIKE  soid-accnt VALUE 0,
-       get_sorted  TYPE  boole_d.
-  DATA:lo_read TYPE REF TO zcl_rfc_read_table.
-  DATA:options TYPE TABLE OF rfc_db_opt,
-       fields  TYPE TABLE OF rfc_db_fld.
-  TYPES: BEGIN OF t_JSON1,
-           wherestr TYPE string,
-         END OF t_JSON1.
-  DATA:wa_where TYPE t_JSON1.
-  DATA:ls_data TYPE REF TO data.
-  DATA:BEGIN OF gs_mapping,
+  DATA:ls_data   TYPE REF TO data,
+       dfies_tab TYPE TABLE OF dfies,
+       tablename TYPE ddobjname,
+       BEGIN OF gs_mapping,
          fieldname TYPE lvc_fname,
          scrtext_l TYPE scrtext_l,
          scrtext_m TYPE scrtext_m,
          scrtext_s TYPE scrtext_s,
        END OF gs_mapping,
        gt_mapping LIKE TABLE OF gs_mapping.
-  query_table = tabname.
+  FIELD-SYMBOLS:<tab> TYPE STANDARD TABLE.
+  DATA:ld_max_row TYPE sy-dbcnt VALUE 999999999.
+  TYPES: BEGIN OF t_JSON1,
+           wherestr TYPE string,
+         END OF t_JSON1.
+  DATA:wa_where TYPE t_JSON1.
+
 *  赋值where查询条件  18.04.2024 14:55:36 by kkw
   IF where_json IS NOT INITIAL.
     /ui2/cl_json=>deserialize( EXPORTING json = where_json  pretty_name = /ui2/cl_json=>pretty_mode-camel_case CHANGING data = wa_where ).
     SPLIT wa_where-wherestr AT space INTO TABLE options.
+    PERFORM compute_sel_criteria TABLES options[].
+    IF options[] IS INITIAL.
+      rtmsg = |where查询条件[{ wa_where-wherestr }]出现可疑字符|.
+      fillmsg 'E' rtmsg.
+    ENDIF.
   ENDIF.
 
-  TRY.
-      CREATE OBJECT lo_read
-        EXPORTING
-          id_table           = query_table
-          id_block_list_tabl = 'RFC_READ_TABLE_TABL'
-          id_block_list_call = 'RFC_READ_TABLE_CALL'
-          id_delim           = delimiter
-          id_no_data         = no_data
-          id_sort            = get_sorted.
-      CLEAR:fields.
-
-      lo_read->get_table_dref( EXPORTING id_skip_rows = rowskips
-                                         id_max_row   = rowcount
-                                         it_fields    = fields[]
-                                         it_selopt    = options[]
-                               IMPORTING et_data      = ls_data
-                                         et_fields    = fields[] ).
-
-
-
-    CATCH cx_sais_raise_events.
-      IF ( sy-msgno = '131' AND sy-msgid = 'DA' ).
-        rtmsg = |table_not_available|.
-        rtype = 'E'.
-        zfmdatasave2 'R'.
-        RAISE table_not_available.
-      ELSEIF ( sy-msgno = '105' AND sy-msgid = 'TB' ) OR ( sy-msgno = '072' AND sy-msgid = 'SAIS' ).
-        rtmsg = |not_authorized|.
-        rtype = 'E'.
-        zfmdatasave2 'R'.
-        RAISE not_authorized.
-      ELSEIF ( sy-msgno = '718' AND sy-msgid = 'AD' ).
-        rtmsg = |table_without_data|.
-        rtype = 'E'.
-        zfmdatasave2 'R'.
-        RAISE table_without_data.
-      ELSEIF ( sy-msgno = '559' AND sy-msgid = 'AD' ).
-        rtmsg = |data_buffer_exceeded|.
-        rtype = 'E'.
-        zfmdatasave2 'R'.
-        RAISE data_buffer_exceeded.
-      ELSEIF  ( sy-msgno = '000' AND sy-msgid = 'SAIS' ).
-        rtmsg = |option_not_valid|.
-        rtype = 'E'.
-        zfmdatasave2 'R'.
-        RAISE option_not_valid.
-      ENDIF.
-
-  ENDTRY.
+  CLEAR:ls_data.
+  UNASSIGN:<tab>.
+  CREATE DATA ls_data TYPE STANDARD TABLE OF (tabname).
   IF ls_data IS BOUND.
-    ASSIGN ls_data->* TO FIELD-SYMBOL(<tab>).
+    ASSIGN ls_data->* TO <tab>.
+  ELSE.
+    rtmsg = |表名[{ tabname }]创建的对象未被有效引用|.
+    fillmsg 'E' rtmsg.
+  ENDIF.
+
+  IF <tab> IS ASSIGNED.
+    TRY .
+        SELECT * FROM (tabname)
+          WHERE (options[])
+          ORDER BY PRIMARY KEY
+          INTO CORRESPONDING FIELDS OF TABLE @<tab>
+          UP TO @ld_max_row ROWS
+          .
+      CATCH cx_sy_dynamic_osql_semantics INTO DATA(e_semantics).
+        DATA(e_semantics_text) = e_semantics->if_message~get_text( ).
+        rtmsg = |表名[{ tabname }]查询条件[{ wa_where-wherestr }]出错:{ e_semantics_text }|.
+        fillmsg 'E' rtmsg.
+      CATCH cx_sy_dynamic_osql_syntax INTO DATA(e_syntax).
+        DATA(e_syntax_text) = e_syntax->if_message~get_text( ).
+        rtmsg = |表名[{ tabname }]查询条件[{ wa_where-wherestr }]出错:{ e_syntax_text }|.
+        fillmsg 'E' rtmsg.
+      CATCH cx_sy_open_sql_db INTO DATA(e_db).
+        DATA(e_db_text) = e_db->if_message~get_text( ).
+        rtmsg = |表名[{ tabname }]查询条件[{ wa_where-wherestr }]出错:{ e_db_text }|.
+        fillmsg 'E' rtmsg.
+    ENDTRY.
     rtype = 'S'.
     IF <tab> IS NOT INITIAL.
-      rtmsg = |成功获取{ tabname }的数据|.
-      out_json = /ui2/cl_json=>serialize( data = <tab> compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
+      rtmsg = |成功获取[{ tabname }]的数据|.
+      out_json = /ui2/cl_json=>serialize( data = <tab>  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
+      " 添加底表字段映射信息  13.03.2024 22:34:58 by kkw
+      tablename = tabname.
+      CALL FUNCTION 'DDIF_FIELDINFO_GET'
+        EXPORTING
+          tabname        = tablename
+          langu          = sy-langu
+        TABLES
+          dfies_tab      = dfies_tab
+        EXCEPTIONS
+          not_found      = 1
+          internal_error = 2
+          OTHERS         = 3.
+      LOOP AT dfies_tab ASSIGNING FIELD-SYMBOL(<dfies_tab>).
+        INSERT INITIAL LINE INTO TABLE gt_mapping ASSIGNING FIELD-SYMBOL(<gt_mapping>).
+        <gt_mapping>-fieldname = to_lower( <dfies_tab>-fieldname ).
+        <gt_mapping>-scrtext_l = <dfies_tab>-fieldtext.
+        <gt_mapping>-scrtext_m = <dfies_tab>-scrtext_m.
+        <gt_mapping>-scrtext_s = <dfies_tab>-scrtext_s.
+      ENDLOOP.
+      out_mapping_json = /ui2/cl_json=>serialize( data = gt_mapping  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
     ELSE.
-      rtmsg = |{ tabname }空数据|.
+      rtmsg = |[{ tabname }]空数据|.
     ENDIF.
-    LOOP AT fields ASSIGNING FIELD-SYMBOL(<dfies_tab>).
-      INSERT INITIAL LINE INTO TABLE gt_mapping ASSIGNING FIELD-SYMBOL(<gt_mapping>).
-      <gt_mapping>-fieldname = to_lower( <dfies_tab>-fieldname ).
-      <gt_mapping>-scrtext_l = <dfies_tab>-fieldtext.
-      <gt_mapping>-scrtext_m = <dfies_tab>-fieldtext.
-      <gt_mapping>-scrtext_s = <dfies_tab>-fieldtext.
-    ENDLOOP.
-    out_mapping_json = /ui2/cl_json=>serialize( data = gt_mapping  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
+    UNASSIGN <tab>.
   ELSE.
-    rtmsg = |表名{ tabname }创建的对象未被有效引用|.
+    rtmsg = |表名[{ tabname }]所属内表未被成功创建|.
     fillmsg 'E' rtmsg.
   ENDIF.
 

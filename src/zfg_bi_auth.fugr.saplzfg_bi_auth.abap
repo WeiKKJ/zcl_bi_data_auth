@@ -13,3 +13,7 @@
 * INCLUDE LZFG_BI_AUTHE...                   " Events
 * INCLUDE LZFG_BI_AUTHP...                   " Local class implement.
 * INCLUDE LZFG_BI_AUTHT99.                   " ABAP Unit tests
+
+*INCLUDE lzfg_bi_authf01.
+
+INCLUDE lzfg_bi_authf01.
