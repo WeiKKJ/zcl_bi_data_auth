@@ -9,9 +9,37 @@ public section.
   PROTECTED SECTION.
 private section.
 
+  types TY_PARENT_ID type STRING .
+  types:
+    ty_parent_id_table TYPE TABLE OF ty_parent_id WITH DEFAULT KEY .
+  types:
+    BEGIN OF t_hierarchy,
+      level           TYPE i,
+      name            TYPE string,
+      table           TYPE abap_bool,
+      structure       TYPE abap_bool,
+      type            TYPE string,
+      length          TYPE i,
+      decimals        TYPE i,
+      absolute_type   TYPE  abap_abstypename,
+      parent          TYPE string,
+      final_type      TYPE string,
+      type_definition TYPE string,
+      final_end       TYPE string,
+      final           TYPE string,
+      id              TYPE i,
+      parent_id       TYPE c LENGTH 1000,
+      parent_id_tab   TYPE ty_parent_id_table,
+    END OF t_hierarchy .
+  types:
+    tt_hierarchy TYPE STANDARD TABLE OF t_hierarchy WITH DEFAULT KEY .
+
   data MY_SERVICE type STRING .
   data MY_URL type STRING .
   data MY_PARAMS type TIHTTPNVP .
+  data HIERARCHY type TT_HIERARCHY .
+  data:
+    datatypescont TYPE TABLE OF rfc_metadata_ddic .
 
   methods GET_RSPARAMS
     importing
@@ -20,6 +48,12 @@ private section.
       value(RSPARAMS) type STRING
     exceptions
       TCODE_NOT_FOUND .
+  methods GET_INTERFACE
+    importing
+      value(TABNAME) type TABNAME
+      value(FIELDNAME) type FIELDNAME optional
+    returning
+      value(OUT_JSON) type STRING .
   methods GET_QUERY
     importing
       value(QUERY_STRING) type STRING
@@ -124,7 +158,16 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
          host             TYPE string,
          port             TYPE string,
          action           TYPE string.
-
+    DATA:functionnames   TYPE TABLE OF rfcfunctionname,
+         datatypes       TYPE TABLE OF rfc_md_ddic_name,
+         known_datatypes TYPE TABLE OF rfc_md_ddic_name,
+         parameters      TYPE TABLE OF rfc_metadata_params,
+*         datatypescont   TYPE TABLE OF rfc_metadata_ddic,
+         indirecttypes   TYPE TABLE OF rfc_metadata_ddic_indirect,
+         func_errors     TYPE TABLE OF rfc_func_error,
+         dd_errors       TYPE TABLE OF rfc_dd_error.
+    DATA:json_meta      TYPE string,
+         json_meta_full TYPE string.
     " 1xx：信息响应类，表示接收到请求并且继续处理
     " 2xx：处理成功响应类，表示动作被成功接收、理解和接受
     " 3xx：重定向响应类，为了完成指定的动作，必须接受进一步处理
@@ -191,7 +234,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 *      server->response->set_status( code = &2  reason = &3 ).
       "不知道为啥有的环境设置非200的http status code就不能正常返回消息
       IF &2 IS NOT INITIAL.
-        server->response->set_status( code = 200  reason = &3 ).
+        server->response->set_status( code = 200  reason = CONV string( &3 ) ).
       ENDIF.
       CASE &1.
         WHEN 'DATA'.
@@ -200,6 +243,8 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
           CONCATENATE `{"rtype":"` &4 `", "rtmsg":"` &5 `"}` INTO json.
         WHEN 'RSPARAMS'.
           CONCATENATE `{"rtype":"` &4 `", "rtmsg":"` &5 `", "rsparams":` &8 `}` INTO json.
+        WHEN 'INTERFACE'.
+          CONCATENATE `{"rtype":"` &4 `", "rtmsg":"` &5 `", "interface":` &8 `}` INTO json.
       ENDCASE.
       server->response->set_cdata( EXPORTING data   = json ).
       RETURN.
@@ -240,7 +285,11 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
         IF sy-subrc EQ 0.
           tabname = to_upper( my_param-value ).
         ENDIF.
-        IF tcode IS NOT INITIAL.
+        READ TABLE my_params INTO my_param WITH KEY name = 'funcname' .
+        IF sy-subrc EQ 0.
+          funcname = to_upper( my_param-value ).
+        ENDIF.
+        IF tcode IS NOT INITIAL."报表相关
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TCD' FIELD tcode.
 *          AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TCODE' FIELD tcode.
           IF sy-subrc NE 0.
@@ -276,7 +325,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
                 out_json         = json
                 out_mapping_json = out_mapping_json.
           ENDIF.
-        ELSEIF tabname IS NOT INITIAL.
+        ELSEIF tabname IS NOT INITIAL."底表相关
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TABLE' FIELD tabname.
 *          AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TABLE' FIELD tabname.
           IF sy-subrc NE 0.
@@ -321,8 +370,85 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
                 rtmsg = |other error|.
             ENDCASE.
           ENDIF.
+        ELSEIF funcname IS NOT INITIAL."函数模块相关
+*          rtmsg = |该方法尚在开发中|.
+*          http_msg 'INTERFACE' 400 'method not active' 'E' rtmsg '' '' '[]'.
+*          AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'FUNC' FIELD funcname.
+          IF sy-subrc NE 0.
+            rtmsg = |你没有函数模块{ funcname }的权限|.
+            http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
+          ENDIF.
+          " 添加对RFC的HTTP调用  06.09.2024 20:05:10 by kkw
+          INSERT INITIAL LINE INTO TABLE functionnames ASSIGNING FIELD-SYMBOL(<functionnames>).
+          <functionnames>-functionname = to_upper( funcname ).
+          CALL FUNCTION 'RFC_METADATA_GET'
+            EXPORTING
+              deep            = 'X'
+*             LANGUAGE        = SY-LANGU
+*             GET_CLIENT_DEP_FIELDS             =
+*             GET_TIMESTAMPS  =
+*             EVALUATE_LINKS  =
+*             DO_NOT_RESOLVE_SIMPLE_TYPES       =
+            TABLES
+              functionnames   = functionnames
+              datatypes       = datatypes
+              known_datatypes = known_datatypes
+              parameters      = parameters
+              datatypescont   = datatypescont
+              indirecttypes   = indirecttypes
+              func_errors     = func_errors
+              dd_errors       = dd_errors
+            EXCEPTIONS
+              invalid_mode    = 1
+              internal_error  = 2
+              OTHERS          = 3.
+          IF sy-subrc <> 0.
+            rtmsg = |获取函数模块{ funcname }信息发生了异常，异常码{ sy-subrc }|.
+            http_msg 'INTERFACE' 404 'get funcname info error' 'E' rtmsg '' '' '[]'.
+          ELSEIF func_errors IS NOT INITIAL.
+            READ TABLE func_errors ASSIGNING FIELD-SYMBOL(<func_errors>) INDEX 1.
+            rtmsg = |获取函数模块{ funcname }信息发生了异常，{ <func_errors>-exception_text }|.
+            http_msg 'INTERFACE' 404 <func_errors>-exception 'E' rtmsg '' '' '[]'.
+          ENDIF.
+
+          action = server->request->get_form_field( 'action' ).
+          IF to_lower( action ) = 'interface'.
+            CLEAR json_meta_full.
+            json_meta_full = `{`.
+            LOOP AT parameters ASSIGNING FIELD-SYMBOL(<parameters>).
+              CLEAR json_meta.
+*              PERFORM get_metadata USING <parameters>-tabname <parameters>-fieldname CHANGING json_meta.
+              CALL METHOD me->get_interface
+                EXPORTING
+                  tabname   = <parameters>-tabname
+                  fieldname = <parameters>-fieldname
+                RECEIVING
+                  out_json  = json_meta.
+
+              CASE <parameters>-paramclass.
+                WHEN 'T'.
+                  json_meta = |"{ <parameters>-parameter }":[| && `{` && | { json_meta } | && `}]`.
+                WHEN OTHERS.
+                  CASE <parameters>-exid.
+                    WHEN 'h' OR 'v' OR 'u'.
+                      json_meta = |"{ <parameters>-parameter }":| && `{` && | { json_meta } | && `}`.
+                    WHEN OTHERS.
+                      json_meta = |"{ <parameters>-parameter }":"{ <parameters>-paramtext }"|.
+*            json_meta = |"{ <parameters>-parameter }":"{ json_meta }"|.
+                  ENDCASE.
+              ENDCASE.
+              json_meta_full = json_meta_full && json_meta && ',' .
+            ENDLOOP.
+            SHIFT json_meta_full RIGHT DELETING TRAILING ','.
+            json_meta_full = json_meta_full && `}` .
+            rtmsg = |成功获取函数模块{ funcname }的参数|.
+            http_msg 'INTERFACE' 200 'OK' 'S' rtmsg '' '' json_meta_full.
+          ELSE.
+            json = server->request->if_http_entity~get_cdata( ).
+
+          ENDIF.
         ELSE.
-          http_msg 'DATA' 412 'Params error' 'E' 'Params键只能是tcode或tabname' '[]' '[]' ''.
+          http_msg 'DATA' 412 'Params error' 'E' 'Params键只能是tcode或tabname或funcname' '[]' '[]' ''.
         ENDIF.
         IF json IS INITIAL.
           json = '[]'.
@@ -463,5 +589,66 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 `</html>`
 
     INTO text  RESPECTING BLANKS.
+  ENDMETHOD.
+
+
+  METHOD get_interface.
+    DATA:json_meta_sub  TYPE string,
+         json_meta_sub1 TYPE string.
+    CLEAR out_json.
+    LOOP AT datatypescont ASSIGNING FIELD-SYMBOL(<datatypescont>) WHERE typename = tabname ."AND fieldname = p_fieldname.
+*    p_json_meta = |"{ <datatypescont>-fieldtype }":"{ <datatypescont>-description }"|.
+      CASE <datatypescont>-comptype.
+*      WHEN 'E' OR 'D'."数据元素
+*        json_meta_sub = |"{ <datatypescont>-fieldname }":"{ <datatypescont>-description }",{ json_meta_sub },|.
+*      WHEN ''."内置类型
+*        json_meta_sub = |"{ <datatypescont>-fieldname }":"{ <datatypescont>-description }",{ json_meta_sub },|.
+        WHEN 'S'."结构
+*          PERFORM get_metadata USING <datatypescont>-fieldtype '' CHANGING json_meta_sub1.
+          CALL METHOD me->get_interface
+            EXPORTING
+              tabname   = <datatypescont>-fieldtype
+              fieldname = ''
+            RECEIVING
+              out_json  = json_meta_sub1.
+          SHIFT json_meta_sub1 RIGHT DELETING TRAILING ','.
+          json_meta_sub = |"{ <datatypescont>-fieldname }":| && `{` && |{ json_meta_sub1 }| && `}` && |,{ json_meta_sub },|.
+        WHEN 'T'.
+          READ TABLE datatypescont ASSIGNING FIELD-SYMBOL(<datatypescontl1>) WITH KEY typename = <datatypescont>-fieldtype.
+          IF sy-subrc EQ 0.
+*            PERFORM get_metadata USING <datatypescontl1>-typename '' CHANGING json_meta_sub1.
+            CALL METHOD me->get_interface
+              EXPORTING
+                tabname   = <datatypescontl1>-typename
+                fieldname = ''
+              RECEIVING
+                out_json  = json_meta_sub1.
+            SHIFT json_meta_sub1 RIGHT DELETING TRAILING ','.
+*          json_meta_sub = |"{ <datatypescont>-fieldname }":| && `[{` && |{ json_meta_sub1 }| && `}]` && |,{ json_meta_sub },|.
+            json_meta_sub = |{ json_meta_sub1 }| && |,{ json_meta_sub },|.
+          ENDIF.
+        WHEN 'L'."表类型
+          READ TABLE datatypescont ASSIGNING <datatypescontl1> WITH KEY typename = <datatypescont>-fieldtype.
+          IF sy-subrc EQ 0.
+            READ TABLE datatypescont ASSIGNING FIELD-SYMBOL(<datatypescontl2>) WITH KEY typename = <datatypescontl1>-fieldtype.
+            IF sy-subrc EQ 0.
+*              PERFORM get_metadata USING <datatypescontl2>-typename '' CHANGING json_meta_sub1.
+              CALL METHOD me->get_interface
+                EXPORTING
+                  tabname   = <datatypescontl2>-typename
+                  fieldname = ''
+                RECEIVING
+                  out_json  = json_meta_sub1.
+              SHIFT json_meta_sub1 RIGHT DELETING TRAILING ','.
+              json_meta_sub = |"{ <datatypescont>-fieldname }":| && `[{` && |{ json_meta_sub1 }| && `}]` && |,{ json_meta_sub },|.
+            ENDIF.
+          ENDIF.
+        WHEN OTHERS.
+          json_meta_sub = |"{ <datatypescont>-fieldname }":"{ <datatypescont>-description }",{ json_meta_sub },|.
+      ENDCASE.
+    ENDLOOP.
+
+    SHIFT json_meta_sub RIGHT DELETING TRAILING ','.
+    out_json = json_meta_sub.
   ENDMETHOD.
 ENDCLASS.
