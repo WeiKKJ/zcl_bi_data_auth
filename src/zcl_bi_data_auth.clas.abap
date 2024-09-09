@@ -6,6 +6,15 @@ class ZCL_BI_DATA_AUTH definition
 public section.
 
   interfaces IF_HTTP_EXTENSION .
+
+  class-methods EXEC_RFC
+    importing
+      value(FUNCNAME) type TFDIR-FUNCNAME
+      value(INTERFACE) type STRING
+    exporting
+      value(OUT_JSON) type STRING
+      value(RTYPE) type BAPI_MTYPE
+      value(RTMSG) type BAPI_MSG .
   PROTECTED SECTION.
 private section.
 
@@ -66,6 +75,9 @@ private section.
     returning
       value(MY_PARAMS) type TIHTTPNVP .
   methods NOTES
+    returning
+      value(TEXT) type STRING .
+  methods NOTES2
     returning
       value(TEXT) type STRING .
 ENDCLASS.
@@ -268,7 +280,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
       WHEN 'GET'.
         server->response->set_header_field( name = 'Content-Type'  value = 'text/html' ).
         server->response->set_status( code = 200 reason = 'OK' ).
-        json = me->notes( ).
+        json = me->notes2( ).
         server->response->set_cdata( json ).
       WHEN 'POST'.
         READ TABLE lt_header INTO wa_header WITH KEY name = '~query_string' .
@@ -415,37 +427,53 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
           IF to_lower( action ) = 'interface'.
             CLEAR json_meta_full.
             json_meta_full = `{`.
-            LOOP AT parameters ASSIGNING FIELD-SYMBOL(<parameters>).
-              CLEAR json_meta.
-*              PERFORM get_metadata USING <parameters>-tabname <parameters>-fieldname CHANGING json_meta.
-              CALL METHOD me->get_interface
-                EXPORTING
-                  tabname   = <parameters>-tabname
-                  fieldname = <parameters>-fieldname
-                RECEIVING
-                  out_json  = json_meta.
+            LOOP AT parameters ASSIGNING FIELD-SYMBOL(<parameters>) GROUP BY ( paramclass = <parameters>-paramclass
+              size = GROUP SIZE index = GROUP INDEX
+              ) ASCENDING ASSIGNING FIELD-SYMBOL(<group>).
+              json_meta_full = json_meta_full && |"{ <group>-paramclass }":| && `{`.
+              LOOP AT GROUP <group> ASSIGNING FIELD-SYMBOL(<mem>).
+                CLEAR json_meta.
+                CALL METHOD me->get_interface
+                  EXPORTING
+                    tabname   = <mem>-tabname
+                    fieldname = <mem>-fieldname
+                  RECEIVING
+                    out_json  = json_meta.
 
-              CASE <parameters>-paramclass.
-                WHEN 'T'.
-                  json_meta = |"{ <parameters>-parameter }":[| && `{` && | { json_meta } | && `}]`.
-                WHEN OTHERS.
-                  CASE <parameters>-exid.
-                    WHEN 'h' OR 'v' OR 'u'.
-                      json_meta = |"{ <parameters>-parameter }":| && `{` && | { json_meta } | && `}`.
-                    WHEN OTHERS.
-                      json_meta = |"{ <parameters>-parameter }":"{ <parameters>-paramtext }"|.
-*            json_meta = |"{ <parameters>-parameter }":"{ json_meta }"|.
-                  ENDCASE.
-              ENDCASE.
-              json_meta_full = json_meta_full && json_meta && ',' .
+                CASE <mem>-paramclass.
+                  WHEN 'T'.
+                    json_meta = |"{ <mem>-parameter }":[| && `{` && |{ json_meta }| && `}]`.
+                  WHEN OTHERS.
+                    CASE <mem>-exid.
+                      WHEN 'h'.
+                        json_meta = |"{ <mem>-parameter }":[| && `{` && |{ json_meta }| && `}]`.
+                      WHEN 'v' OR 'u'.
+                        json_meta = |"{ <mem>-parameter }":| && `{` && |{ json_meta }| && `}`.
+                      WHEN OTHERS.
+                        json_meta = |"{ <mem>-parameter }":"{ <mem>-paramtext }"|.
+                    ENDCASE.
+                ENDCASE.
+                json_meta_full = json_meta_full && json_meta && ',' .
+              ENDLOOP.
+              SHIFT json_meta_full RIGHT DELETING TRAILING ','.
+              json_meta_full = json_meta_full && `},`.
             ENDLOOP.
             SHIFT json_meta_full RIGHT DELETING TRAILING ','.
             json_meta_full = json_meta_full && `}` .
+*            CONDENSE json_meta_full NO-GAPS.
             rtmsg = |成功获取函数模块{ funcname }的参数|.
             http_msg 'INTERFACE' 200 'OK' 'S' rtmsg '' '' json_meta_full.
           ELSE.
             json = server->request->if_http_entity~get_cdata( ).
-
+            CALL METHOD me->exec_rfc
+              EXPORTING
+                funcname  = funcname
+                interface = json
+              IMPORTING
+                out_json  = DATA(out_json)
+                rtype     = rtype
+                rtmsg     = rtmsg.
+            http_msg 'INTERFACE' 200 'OK' rtype rtmsg '' '' out_json.
           ENDIF.
         ELSE.
           http_msg 'DATA' 412 'Params error' 'E' 'Params键只能是tcode或tabname或funcname' '[]' '[]' ''.
@@ -597,14 +625,9 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
          json_meta_sub1 TYPE string.
     CLEAR out_json.
     LOOP AT datatypescont ASSIGNING FIELD-SYMBOL(<datatypescont>) WHERE typename = tabname ."AND fieldname = p_fieldname.
-*    p_json_meta = |"{ <datatypescont>-fieldtype }":"{ <datatypescont>-description }"|.
+      CLEAR json_meta_sub1.
       CASE <datatypescont>-comptype.
-*      WHEN 'E' OR 'D'."数据元素
-*        json_meta_sub = |"{ <datatypescont>-fieldname }":"{ <datatypescont>-description }",{ json_meta_sub },|.
-*      WHEN ''."内置类型
-*        json_meta_sub = |"{ <datatypescont>-fieldname }":"{ <datatypescont>-description }",{ json_meta_sub },|.
         WHEN 'S'."结构
-*          PERFORM get_metadata USING <datatypescont>-fieldtype '' CHANGING json_meta_sub1.
           CALL METHOD me->get_interface
             EXPORTING
               tabname   = <datatypescont>-fieldtype
@@ -612,11 +635,10 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
             RECEIVING
               out_json  = json_meta_sub1.
           SHIFT json_meta_sub1 RIGHT DELETING TRAILING ','.
-          json_meta_sub = |"{ <datatypescont>-fieldname }":| && `{` && |{ json_meta_sub1 }| && `}` && |,{ json_meta_sub },|.
-        WHEN 'T'.
+          json_meta_sub = |{ json_meta_sub }"{ <datatypescont>-fieldname }":| && `{` && |{ json_meta_sub1 }| && `},` .
+        WHEN 'T'." 表则返回对应的结构的数据元素
           READ TABLE datatypescont ASSIGNING FIELD-SYMBOL(<datatypescontl1>) WITH KEY typename = <datatypescont>-fieldtype.
           IF sy-subrc EQ 0.
-*            PERFORM get_metadata USING <datatypescontl1>-typename '' CHANGING json_meta_sub1.
             CALL METHOD me->get_interface
               EXPORTING
                 tabname   = <datatypescontl1>-typename
@@ -624,15 +646,13 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
               RECEIVING
                 out_json  = json_meta_sub1.
             SHIFT json_meta_sub1 RIGHT DELETING TRAILING ','.
-*          json_meta_sub = |"{ <datatypescont>-fieldname }":| && `[{` && |{ json_meta_sub1 }| && `}]` && |,{ json_meta_sub },|.
-            json_meta_sub = |{ json_meta_sub1 }| && |,{ json_meta_sub },|.
+            json_meta_sub = |{ json_meta_sub }{ json_meta_sub1 },|.
           ENDIF.
         WHEN 'L'."表类型
           READ TABLE datatypescont ASSIGNING <datatypescontl1> WITH KEY typename = <datatypescont>-fieldtype.
           IF sy-subrc EQ 0.
             READ TABLE datatypescont ASSIGNING FIELD-SYMBOL(<datatypescontl2>) WITH KEY typename = <datatypescontl1>-fieldtype.
             IF sy-subrc EQ 0.
-*              PERFORM get_metadata USING <datatypescontl2>-typename '' CHANGING json_meta_sub1.
               CALL METHOD me->get_interface
                 EXPORTING
                   tabname   = <datatypescontl2>-typename
@@ -640,15 +660,340 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
                 RECEIVING
                   out_json  = json_meta_sub1.
               SHIFT json_meta_sub1 RIGHT DELETING TRAILING ','.
-              json_meta_sub = |"{ <datatypescont>-fieldname }":| && `[{` && |{ json_meta_sub1 }| && `}]` && |,{ json_meta_sub },|.
+              json_meta_sub = |{ json_meta_sub }"{ <datatypescont>-fieldname }":| && `[{` && |{ json_meta_sub1 }| && `}],`.
             ENDIF.
           ENDIF.
         WHEN OTHERS.
-          json_meta_sub = |"{ <datatypescont>-fieldname }":"{ <datatypescont>-description }",{ json_meta_sub },|.
+          json_meta_sub = |{ json_meta_sub }"{ <datatypescont>-fieldname }":"{ <datatypescont>-description }",|.
       ENDCASE.
     ENDLOOP.
 
     SHIFT json_meta_sub RIGHT DELETING TRAILING ','.
     out_json = json_meta_sub.
+  ENDMETHOD.
+
+
+  METHOD exec_rfc.
+    DATA:t_params_p TYPE TABLE OF rfc_fint_p,
+         params_p   TYPE rfc_fint_p,
+         paramtab   TYPE abap_func_parmbind_tab,
+         paramline  TYPE LINE OF abap_func_parmbind_tab,
+         dataname   TYPE string.
+    DATA:dref_int TYPE REF TO data,
+         dref     TYPE REF TO data.
+    DATA:table_type TYPE REF TO cl_abap_tabledescr,
+         data_type  TYPE REF TO cl_abap_datadescr.
+    DATA:paramclass TYPE rs38l_kind.
+    DATA:json_meta      TYPE string,
+         json_meta_full TYPE string.
+    CLEAR:rtype,rtmsg,out_json.
+    CALL FUNCTION 'RFC_GET_FUNCTION_INTERFACE_P'
+      EXPORTING
+        funcname      = funcname
+      TABLES
+        params_p      = t_params_p
+      EXCEPTIONS
+        fu_not_found  = 1
+        nametab_fault = 2
+        OTHERS        = 3.
+    IF sy-subrc <> 0.
+      rtype = 'E'.
+      rtmsg = |调用RFC：{ funcname }发生了异常，状态码：{ sy-subrc }|.
+    ENDIF.
+    /ui2/cl_json=>deserialize( EXPORTING json = interface  pretty_name = /ui2/cl_json=>pretty_mode-low_case CHANGING data = dref_int ).
+    CLEAR:paramtab.
+    LOOP AT t_params_p INTO params_p WHERE paramclass = 'I' OR paramclass = 'E' OR paramclass = 'C' OR paramclass = 'T'.
+      CLEAR:paramline,dataname.
+      CASE params_p-paramclass.
+        WHEN 'I' OR 'E' OR 'C' OR 'T'.
+          paramline-name = params_p-parameter.
+          IF params_p-paramclass = 'E'.
+            paramline-kind = abap_func_importing.
+          ELSEIF params_p-paramclass = 'I'.
+            paramline-kind = abap_func_exporting.
+          ELSEIF params_p-paramclass = 'C'.
+            paramline-kind = abap_func_changing.
+          ELSE.
+            paramline-kind = abap_func_tables.
+          ENDIF.
+          IF params_p-fieldname IS INITIAL.
+            dataname = params_p-tabname.
+          ELSE.
+            CONCATENATE params_p-tabname params_p-fieldname INTO dataname SEPARATED BY '-'.
+          ENDIF.
+          CLEAR:dref.
+          TRY.
+              data_type ?= cl_abap_datadescr=>describe_by_name( p_name = dataname ).
+            CATCH cx_sy_move_cast_error.
+              CONTINUE.
+          ENDTRY.
+          CLEAR table_type.
+          IF params_p-paramclass = 'T'.
+            IF data_type->kind = 'S'.
+              table_type ?= cl_abap_tabledescr=>create( p_line_type = data_type ).
+            ELSE.
+              table_type ?= data_type.
+            ENDIF.
+            CREATE DATA dref TYPE HANDLE table_type.
+          ELSE.
+            CREATE DATA dref TYPE HANDLE data_type .
+          ENDIF.
+          ASSIGN dref->* TO FIELD-SYMBOL(<dref_value>).
+          DATA(value) = |DREF_INT->{ params_p-paramclass }->{ params_p-parameter }|.
+          ASSIGN (value) TO FIELD-SYMBOL(<value>).
+          IF NOT <value> IS ASSIGNED.
+*            CONTINUE.
+          ELSE.
+            DATA(value_json) = /ui2/cl_json=>serialize( data = <value> compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-none ).
+            /ui2/cl_json=>deserialize( EXPORTING json = value_json pretty_name = /ui2/cl_json=>pretty_mode-none CHANGING data = <dref_value> ).
+          ENDIF.
+          paramline-value = dref.
+          INSERT paramline INTO TABLE paramtab.
+          UNASSIGN:<value>,<dref_value>.
+        WHEN OTHERS.
+*          RAISE unsupported_param_type.
+      ENDCASE.
+    ENDLOOP.
+    TRY.
+        CALL FUNCTION funcname
+          PARAMETER-TABLE
+          paramtab.
+        json_meta_full = `{`.
+        LOOP AT paramtab ASSIGNING FIELD-SYMBOL(<paramtab>) GROUP BY ( kind = <paramtab>-kind
+          size = GROUP SIZE index = GROUP INDEX
+          ) ASCENDING ASSIGNING FIELD-SYMBOL(<group>).
+          CLEAR paramclass.
+          CASE <group>-kind.
+            WHEN abap_func_importing.
+              paramclass = 'E'.
+            WHEN abap_func_exporting.
+              paramclass = 'I'.
+            WHEN abap_func_changing.
+              paramclass = 'C'.
+            WHEN abap_func_tables.
+              paramclass = 'T'.
+          ENDCASE.
+          json_meta_full = json_meta_full && |"{ paramclass }":| && `{`.
+          LOOP AT GROUP <group> ASSIGNING FIELD-SYMBOL(<mem>).
+            DATA(json) = /ui2/cl_json=>serialize( data = <mem>-value compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-none ).
+            json_meta = |"{ <mem>-name }":{ json }| .
+            json_meta_full = json_meta_full && json_meta && ',' .
+          ENDLOOP.
+          SHIFT json_meta_full RIGHT DELETING TRAILING ','.
+          json_meta_full = json_meta_full && `},`.
+        ENDLOOP.
+        SHIFT json_meta_full RIGHT DELETING TRAILING ','.
+        json_meta_full = json_meta_full && `}` .
+        rtype = 'S'.
+        rtmsg = |执行函数{ funcname }未发生异常，执行结果请查看interface节点参数|.
+        out_json = json_meta_full.
+      CATCH cx_root INTO DATA(exc).
+        rtype = 'E'.
+        rtmsg = |执行函数{ funcname }发生了异常：{ exc->get_text( ) }|.
+        out_json = `{}`.
+    ENDTRY.
+
+  ENDMETHOD.
+
+
+  METHOD notes2.
+    CLEAR text.
+    CONCATENATE
+
+`<!DOCTYPE html>                                                                                                                                                                                          `
+`<html>                                                                                                                                                                                                   `
+`                                                                                                                                                                                                         `
+`<head>                                                                                                                                                                                                   `
+`  <meta charset="utf-8">                                                                                                                                                                                 `
+`  <meta name="viewport" content="width=device-width, initial-scale=1.0">                                                                                                                                 `
+`  <title>通用取数接口服务</title>                                                                                                                                                                        `
+`  <link rel="stylesheet" href="https://stackedit.io/style.css" />                                                                                                                                        `
+`</head>                                                                                                                                                                                                  `
+`                                                                                                                                                                                                         `
+`<body class="stackedit">                                                                                                                                                                                 `
+`  <div class="stackedit__left">                                                                                                                                                                          `
+`    <div class="stackedit__toc">                                                                                                                                                                         `
+`                                                                                                                                                                                                         `
+`<ul>                                                                                                                                                                                                     `
+`<li><a href="#关于这项服务的使用说明">关于这项服务的使用说明</a>                                                                                                                                                               `
+`<ul>                                                                                                                                                                                                     `
+`<li><a href="#权限检查">权限检查</a></li>                                                                                                                                                                        `
+`<li><a href="#获取alv报表选择屏幕参数">获取ALV报表选择屏幕参数</a></li>                                                                                                                                                      `
+`<li><a href="#获取alv报表数据">获取ALV报表数据</a></li>                                                                                                                                                              `
+`<li><a href="#获取底表数据">获取底表数据</a></li>                                                                                                                                                                    `
+`<li><a href="#获取rfc出入参">获取RFC出入参</a></li>                                                                                                                                                                `
+`<li><a href="#调用rfc">调用RFC</a></li>                                                                                                                                                                      `
+`<li><a href="#后续计划">后续计划</a></li>                                                                                                                                                                        `
+`<li><a href="#联系我">联系我</a></li>                                                                                                                                                                          `
+`</ul>                                                                                                                                                                                                    `
+`</li>                                                                                                                                                                                                    `
+`</ul>                                                                                                                                                                                                    `
+`                                                                                                                                                                                                         `
+`    </div>                                                                                                                                                                                               `
+`  </div>                                                                                                                                                                                                 `
+`  <div class="stackedit__right">                                                                                                                                                                         `
+`    <div class="stackedit__html">                                                                                                                                                                        `
+`      <h1 id="关于这项服务的使用说明">关于这项服务的使用说明</h1>                                                                                                                                                              `
+`<p>这是一个获取SAP的ALV报表、底表和RFC数据的HTTP接口服务。</p>                                                                                                                                                                `
+`<p>它以SICF 服务的形式提供此接口，在此系统中，此服务已分配给 SICF 服务<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `" title="调用地址">` me->my_service `</a>。</p>                                                                       `
+`<h2 id="权限检查">权限检查</h2>                                                                                                                                                                                  `
+`<p>该服务包含一个对名为 ZBI_AUTH 的自定义授权对象的AUTHORITY_CHECK调用，用于验证用户是否可以访问事务码或者底表,需要为每个访问该服务的用户都创建一个单独的角色，其中只有允许他访问的功能。<br>                                                                                          `
+`<strong>权限对象</strong>：<br>                                                                                                                                                                               `
+`<img src="https://s21.ax1x.com/2024/03/16/pF2QXjg.jpg" alt="pF2QXjg.jpg"><br>                                                                                                                            `
+`<strong>权限角色</strong>：<br>                                                                                                                                                                               `
+`<img src="https://s21.ax1x.com/2024/03/16/pF2lLI1.jpg" alt="pF2lLI1.jpg"></p>                                                                                                                            `
+`<p>该服务提供了五类方法：获取ALV报表选择屏幕参数、获取ALV报表数据、获取底表数据、获取RFC出入参和调用RFC，具体请求示例请查看下面的详细介绍。</p>                                                                                                                        `
+`<h2 id="获取alv报表选择屏幕参数">获取ALV报表选择屏幕参数</h2>                                                                                                                                                                `
+`<p>curl请求：</p>                                                                                                                                                                                           `
+`<pre><code>curl --location '` me->my_url me->my_service `?sap-client=` sy-mandt `&amp;tcode=[事务码]' \`
+`--header 'Content-Type: application/x-www-form-urlencoded' \`
+`--header 'Authorization: Basic dW5hbWU6cGFzc3dk' \`
+`--data-urlencode 'action=rsparams'`
+`</code></pre>`
+`<p>返回消息结构：</p>`
+`<pre><code>{`
+`  "rtype": "消息类型: S 成功,E 错误,W 警告,I 信息,A 中断",`
+`  "rtmsg": "消息文本",`
+`  "rsparams": [`
+`    {`
+`      "selname": "ABAP：SELECT-OPTION/PARAMETER 的名称",`
+`      "kind": "ABAP/4: 选择类型，单选字段配置'P'，多选字段配置'S'",`
+`      "sign": "ABAP/4: ID: I/E (包括/不包括值)",`
+`      "option": "ABAP/4: 选择选项 (EQ/BT/CP/...)",`
+`      "low": "ABAP：选择值（LOW 值，外部格式）",`
+`      "high": "ABAP：选择值（HIGH 值，外部格式）"`
+`    }`
+`  ]`
+`}`
+`</code></pre>`
+`<h2 id="获取alv报表数据">获取ALV报表数据</h2>                                                                                                                                                                        `
+`<p>curl请求：</p>                                                                                                                                                                                           `
+`<pre><code>curl --location '` me->my_url me->my_service `?sap-client=` sy-mandt `&amp;tcode=[事务码]' \`
+`--header 'Content-Type: application/json' \`
+`--header 'Authorization: Basic dW5hbWU6cGFzc3dk' \`
+`--data '[`
+`  {`
+`    "selname": "ABAP：SELECT-OPTION/PARAMETER 的名称",`
+`    "kind": "ABAP/4: 选择类型，单选字段配置'P'，多选字段配置'S'",`
+`    "sign": "ABAP/4: ID: I/E (包括/不包括值)",`
+`    "option": "ABAP/4: 选择选项 (EQ/BT/CP/...)",`
+`    "low": "ABAP：选择值（LOW 值，外部格式）",`
+`    "high": "ABAP：选择值（HIGH 值，外部格式）"`
+`  }`
+`]'`
+`</code></pre>`
+`<p>返回消息结构：</p>                                                                                                                                                                                           `
+`<pre><code>{`
+`  "rtype": "消息类型: S 成功,E 错误,W 警告,I 信息,A 中断",`
+`  "rtmsg": "消息文本",`
+`  "mapping": [`
+`    {`
+`      "fieldname": "字段名",`
+`      "scrtext_s": "短字段描述",`
+`      "scrtext_m": "中字段描述",`
+`      "scrtext_l": "长字段描述"`
+`    }`
+`  ],`
+`  "data": [`
+`    {`
+`      "字段名": "字段值"`
+`    }`
+`  ]`
+`}`
+`</code></pre>`
+`<h2 id="获取底表数据">获取底表数据</h2>                                                                                                                                                                              `
+`<p>curl请求：</p>                                                                                                                                                                                           `
+`<pre><code>curl --location '` me->my_url me->my_service `?sap-client=` sy-mandt `&amp;tabname=[透明表表名]' \`
+`--header 'Content-Type: application/json' \`
+`--header 'Authorization: Basic dW5hbWU6cGFzc3dk' \`
+`--data '{"wherestr":"SQL查询条件，不用加where"}'`
+`</code></pre>`
+`<p>返回消息结构：</p>                                                                                                                                                                                           `
+`<pre><code>{`
+`  "rtype": "消息类型: S 成功,E 错误,W 警告,I 信息,A 中断",`
+`  "rtmsg": "消息文本",`
+`  "mapping": [`
+`    {`
+`      "fieldname": "字段名",`
+`      "scrtext_s": "短字段描述",`
+`      "scrtext_m": "中字段描述",`
+`      "scrtext_l": "长字段描述"`
+`    }`
+`  ],`
+`  "data": [`
+`    {`
+`      "字段名": "字段值"`
+`    }`
+`  ]`
+`}`
+`</code></pre>`
+`<h2 id="获取rfc出入参">获取RFC出入参</h2>                                                                                                                                                                          `
+`<p>curl请求：</p>                                                                                                                                                                                           `
+`<pre><code>curl --location '` me->my_url me->my_service `?sap-client=` sy-mandt `&amp;funcname=[RFC名]' \`
+`--header 'Content-Type: application/x-www-form-urlencoded' \`
+`--header 'Authorization: Basic dW5hbWU6cGFzc3dk' \`
+`--data-urlencode 'action=interface'`
+`</code></pre>`
+`<p>返回消息结构：</p>                                                                                                                                                                                           `
+`<pre><code>{`
+`  "rtype": "消息类型: S 成功,E 错误,W 警告,I 信息,A 中断",`
+`  "rtmsg": "消息文本",`
+`  "interface": {`
+`    "I": {"导入参数名称":"导入参数JSON结构体"},`
+`    "E": {"导出参数名称":"导出参数JSON结构体"},`
+`    "C": {"更改参数名称":"更改参数JSON结构体"},`
+`    "T": {"表参数名称":"表参数JSON结构体"}`
+`  }`
+`}`
+`</code></pre>`
+`<h2 id="调用rfc">调用RFC</h2>                                                                                                                                                                                `
+`<p>curl请求：</p>                                                                                                                                                                                           `
+`<pre><code>curl --location '` me->my_url me->my_service `?sap-client=` sy-mandt `&amp;funcname=[RFC名]' \`
+`--header 'Content-Type: application/json' \`
+`--header 'Authorization: Basic dW5hbWU6cGFzc3dk' \`
+`--data '{`
+`  "I": {`
+`    "导入参数名称": "导入参数JSON结构体"`
+`  },`
+`  "E": {`
+`    "导出参数名称": "导出参数JSON结构体"`
+`  },`
+`  "C": {`
+`    "更改参数名称": "更改参数JSON结构体"`
+`  },`
+`  "T": {`
+`    "表参数名称": "表参数JSON结构体"`
+`  }`
+`}'`
+`</code></pre>`
+`<p>返回消息结构：</p>                                                                                                                                                                                           `
+`<pre><code>{`
+`  "rtype": "消息类型: S 成功,E 错误,W 警告,I 信息,A 中断",`
+`  "rtmsg": "消息文本",`
+`  "interface": {`
+`    "I": {"导入参数名称":"导入参数JSON结构体"},`
+`    "E": {"导出参数名称":"导出参数JSON结构体"},`
+`    "C": {"更改参数名称":"更改参数JSON结构体"},`
+`    "T": {"表参数名称":"表参数JSON结构体"}`
+`  }`
+`}`
+`</code></pre>`
+`<h2 id="后续计划">后续计划</h2>                                                                                                                                                                                  `
+`<ol>                                                                                                                                                                                                     `
+`<li><s>取底表数据添加OPEN SQL查询条件</s> 202405</li>                                                                                                                                                               `
+`<li><s>扩展下支持通过http调用RFC接口（完善<a href="https://github.com/cesar-sap/abap_fm_json">cesar-sap/abap_fm_json</a>不支持全部参数的缺陷）</s> 202409</li>                                                                    `
+`<li>想到了再说&#128514;</li>                                                                                                                                                                                          `
+`</ol>                                                                                                                                                                                                    `
+`<h2 id="联系我">联系我</h2>                                                                                                                                                                                    `
+`<p>邮箱：<a href="mailto:weikj@foxmail.com" title="kkw">weikj@foxmail.com</a></p>                                                                                                                           `
+`                                                                                                                                                                                                         `
+`    </div>                                                                                                                                                                                               `
+`  </div>                                                                                                                                                                                                 `
+`</body>                                                                                                                                                                                                  `
+`                                                                                                                                                                                                         `
+`</html>`
+
+
+    INTO text  RESPECTING BLANKS.
   ENDMETHOD.
 ENDCLASS.
