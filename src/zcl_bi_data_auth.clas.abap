@@ -46,7 +46,6 @@ private section.
   data MY_SERVICE type STRING .
   data MY_URL type STRING .
   data MY_PARAMS type TIHTTPNVP .
-  data HIERARCHY type TT_HIERARCHY .
   data:
     datatypescont TYPE TABLE OF rfc_metadata_ddic .
 
@@ -303,7 +302,6 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
         ENDIF.
         IF tcode IS NOT INITIAL."报表相关
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TCD' FIELD tcode.
-*          AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TCODE' FIELD tcode.
           IF sy-subrc NE 0.
             rtmsg = |你没有事务码{ tcode }的权限|.
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
@@ -339,7 +337,6 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
           ENDIF.
         ELSEIF tabname IS NOT INITIAL."底表相关
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TABLE' FIELD tabname.
-*          AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TABLE' FIELD tabname.
           IF sy-subrc NE 0.
             rtmsg = |你没有底表{ tabname }的权限|.
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
@@ -385,7 +382,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
         ELSEIF funcname IS NOT INITIAL."函数模块相关
 *          rtmsg = |该方法尚在开发中|.
 *          http_msg 'INTERFACE' 400 'method not active' 'E' rtmsg '' '' '[]'.
-*          AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'FUNC' FIELD funcname.
+          AUTHORITY-CHECK OBJECT 'ZBI_AUTH_F' ID 'RFC_NAME' FIELD funcname.
           IF sy-subrc NE 0.
             rtmsg = |你没有函数模块{ funcname }的权限|.
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
@@ -742,7 +739,12 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
           DATA(value) = |DREF_INT->{ params_p-paramclass }->{ params_p-parameter }|.
           ASSIGN (value) TO FIELD-SYMBOL(<value>).
           IF NOT <value> IS ASSIGNED.
-*            CONTINUE.
+            IF params_p-default IS NOT INITIAL.
+              DATA(len) = strlen( params_p-default ) - 2.
+              IF len GT 0.
+                <dref_value> = params_p-default+1(len).
+              ENDIF.
+            ENDIF.
           ELSE.
             DATA(value_json) = /ui2/cl_json=>serialize( data = <value> compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-none ).
             /ui2/cl_json=>deserialize( EXPORTING json = value_json pretty_name = /ui2/cl_json=>pretty_mode-none CHANGING data = <dref_value> ).
@@ -835,7 +837,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 `    <div class="stackedit__html">                                                                                                                                                                        `
 `      <h1 id="关于这项服务的使用说明">关于这项服务的使用说明</h1>                                                                                                                                                              `
 `<p>这是一个获取SAP的ALV报表、底表和RFC数据的HTTP接口服务。</p>                                                                                                                                                                `
-`<p>它以SICF 服务的形式提供此接口，在此系统中，此服务已分配给 SICF 服务<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `" title="调用地址">` me->my_service `</a>。</p>                                                                       `
+`<p>它以 ICF 服务的形式提供此接口，在此系统中，此服务已分配给 ICF 服务<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `" title="调用地址">` me->my_service `</a>。</p>                                                                       `
 `<h2 id="权限检查">权限检查</h2>                                                                                                                                                                                  `
 `<p>该服务包含一个对名为 ZBI_AUTH 的自定义授权对象的AUTHORITY_CHECK调用，用于验证用户是否可以访问事务码或者底表,需要为每个访问该服务的用户都创建一个单独的角色，其中只有允许他访问的功能。<br>                                                                                          `
 `<strong>权限对象</strong>：<br>                                                                                                                                                                               `
