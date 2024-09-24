@@ -1,92 +1,67 @@
-class ZCL_BI_DATA_AUTH definition
-  public
-  final
-  create public .
+CLASS zcl_bi_data_auth DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
 
-public section.
+  PUBLIC SECTION.
 
-  interfaces IF_HTTP_EXTENSION .
+    INTERFACES if_http_extension .
 
-  class-methods EXEC_RFC
-    importing
-      value(FUNCNAME) type TFDIR-FUNCNAME
-      value(INTERFACE) type STRING
-    exporting
-      value(OUT_JSON) type STRING
-      value(RTYPE) type BAPI_MTYPE
-      value(RTMSG) type BAPI_MSG .
-  class-methods EXEC_RFC_CRTDATA
-    importing
-      value(FUNCNAME) type TFDIR-FUNCNAME
-      value(INTERFACE) type STRING
-    exporting
-      value(OUT_JSON) type STRING
-      value(RTYPE) type BAPI_MTYPE
-      value(RTMSG) type BAPI_MSG .
+    CLASS-METHODS exec_rfc
+      IMPORTING
+        VALUE(funcname)  TYPE tfdir-funcname
+        VALUE(interface) TYPE string
+      EXPORTING
+        VALUE(out_json)  TYPE string
+        VALUE(rtype)     TYPE bapi_mtype
+        VALUE(rtmsg)     TYPE bapi_msg .
+    CLASS-METHODS exec_rfc_crtdata
+      IMPORTING
+        VALUE(funcname)  TYPE tfdir-funcname
+        VALUE(interface) TYPE string
+      EXPORTING
+        VALUE(out_json)  TYPE string
+        VALUE(rtype)     TYPE bapi_mtype
+        VALUE(rtmsg)     TYPE bapi_msg .
   PROTECTED SECTION.
-private section.
+  PRIVATE SECTION.
 
-  types TY_PARENT_ID type STRING .
-  types:
-    ty_parent_id_table TYPE TABLE OF ty_parent_id WITH DEFAULT KEY .
-  types:
-    BEGIN OF t_hierarchy,
-      level           TYPE i,
-      name            TYPE string,
-      table           TYPE abap_bool,
-      structure       TYPE abap_bool,
-      type            TYPE string,
-      length          TYPE i,
-      decimals        TYPE i,
-      absolute_type   TYPE  abap_abstypename,
-      parent          TYPE string,
-      final_type      TYPE string,
-      type_definition TYPE string,
-      final_end       TYPE string,
-      final           TYPE string,
-      id              TYPE i,
-      parent_id       TYPE c LENGTH 1000,
-      parent_id_tab   TYPE ty_parent_id_table,
-    END OF t_hierarchy .
-  types:
-    tt_hierarchy TYPE STANDARD TABLE OF t_hierarchy WITH DEFAULT KEY .
+    DATA my_service TYPE string .
+    DATA my_url TYPE string .
+    DATA my_params TYPE tihttpnvp .
+    DATA:
+      datatypescont TYPE TABLE OF rfc_metadata_ddic .
 
-  data MY_SERVICE type STRING .
-  data MY_URL type STRING .
-  data MY_PARAMS type TIHTTPNVP .
-  data:
-    datatypescont TYPE TABLE OF rfc_metadata_ddic .
-
-  methods GET_RSPARAMS
-    importing
-      value(TCODE) type SY-TCODE
-    returning
-      value(RSPARAMS) type STRING
-    exceptions
-      TCODE_NOT_FOUND .
-  methods GET_INTERFACE
-    importing
-      value(TABNAME) type TABNAME
-      value(FIELDNAME) type FIELDNAME optional
-    returning
-      value(OUT_JSON) type STRING .
-  methods GET_QUERY
-    importing
-      value(QUERY_STRING) type STRING
-      value(KEY) type STRING
-    exporting
-      value(VALUE) type STRING .
-  methods GET_PARAMS
-    importing
-      value(PARAMS) type STRING
-    returning
-      value(MY_PARAMS) type TIHTTPNVP .
-  methods NOTES
-    returning
-      value(TEXT) type STRING .
-  methods NOTES2
-    returning
-      value(TEXT) type STRING .
+    METHODS get_rsparams
+      IMPORTING
+        VALUE(tcode)    TYPE sy-tcode
+      RETURNING
+        VALUE(rsparams) TYPE string
+      EXCEPTIONS
+        tcode_not_found .
+    METHODS get_interface
+      IMPORTING
+        VALUE(tabname)   TYPE tabname
+        VALUE(fieldname) TYPE fieldname OPTIONAL
+      RETURNING
+        VALUE(out_json)  TYPE string .
+    METHODS get_query
+      IMPORTING
+        VALUE(query_string) TYPE string
+        VALUE(key)          TYPE string
+      EXPORTING
+        VALUE(value)        TYPE string .
+    METHODS get_params
+      IMPORTING
+        VALUE(params)    TYPE string
+      RETURNING
+        VALUE(my_params) TYPE tihttpnvp .
+    METHODS notes
+      RETURNING
+        VALUE(text) TYPE string .
+    METHODS notes2
+      RETURNING
+        VALUE(text) TYPE string .
 ENDCLASS.
 
 
@@ -311,7 +286,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
         IF tcode IS NOT INITIAL."报表相关
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TCD' FIELD tcode.
           IF sy-subrc NE 0.
-            rtmsg = |你没有事务码{ tcode }的权限|.
+            rtmsg = |你没有事务码[{ tcode }]的权限|.
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
           ENDIF.
           action = server->request->get_form_field( 'action' ).
@@ -325,10 +300,10 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
                 tcode_not_found = 1
                 OTHERS          = 2.
             IF sy-subrc <> 0.
-              rtmsg = |事务码{ tcode }不存在|.
+              rtmsg = |事务码[{ tcode }]不存在|.
               http_msg 'RSPARAMS' 404 'Tcode not found' 'E' rtmsg '' '' '[]'.
             ELSE.
-              rtmsg = |成功获取事务码{ tcode }的选择屏幕参数|.
+              rtmsg = |成功获取事务码[{ tcode }]的选择屏幕参数|.
               http_msg 'RSPARAMS' 200 'OK' 'S' rtmsg '' '' rsparams.
             ENDIF.
           ELSE.
@@ -346,7 +321,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
         ELSEIF tabname IS NOT INITIAL."底表相关
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TABLE' FIELD tabname.
           IF sy-subrc NE 0.
-            rtmsg = |你没有底表{ tabname }的权限|.
+            rtmsg = |你没有底表[{ tabname }]的权限|.
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
           ENDIF.
           json = server->request->if_http_entity~get_cdata( ).
@@ -392,7 +367,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 *          http_msg 'INTERFACE' 400 'method not active' 'E' rtmsg '' '' '[]'.
           AUTHORITY-CHECK OBJECT 'ZBI_AUTH_F' ID 'RFC_NAME' FIELD funcname.
           IF sy-subrc NE 0.
-            rtmsg = |你没有函数模块{ funcname }的权限|.
+            rtmsg = |你没有函数模块[{ funcname }]的权限|.
             http_msg 'AUTH' 403 'Not authorized' 'E' rtmsg '' '' ''.
           ENDIF.
           " 添加对RFC的HTTP调用  06.09.2024 20:05:10 by kkw
@@ -420,11 +395,11 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
               internal_error  = 2
               OTHERS          = 3.
           IF sy-subrc <> 0.
-            rtmsg = |获取函数模块{ funcname }信息发生了异常，异常码{ sy-subrc }|.
+            rtmsg = |获取函数模块[{ funcname }]信息发生了异常，异常码[{ sy-subrc }]|.
             http_msg 'INTERFACE' 404 'get funcname info error' 'E' rtmsg '' '' '[]'.
           ELSEIF func_errors IS NOT INITIAL.
             READ TABLE func_errors ASSIGNING FIELD-SYMBOL(<func_errors>) INDEX 1.
-            rtmsg = |获取函数模块{ funcname }信息发生了异常，{ <func_errors>-exception }，{ <func_errors>-exception_text }|.
+            rtmsg = |获取函数模块[{ funcname }]信息发生了异常，[{ <func_errors>-exception }]，[{ <func_errors>-exception_text }]|.
             http_msg 'INTERFACE' 404 <func_errors>-exception 'E' rtmsg '' '' '[]'.
           ENDIF.
 
@@ -466,10 +441,18 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
             SHIFT json_meta_full RIGHT DELETING TRAILING ','.
             json_meta_full = json_meta_full && `}` .
 *            CONDENSE json_meta_full NO-GAPS.
-            rtmsg = |成功获取函数模块{ funcname }的参数|.
+            rtmsg = |成功获取函数模块[{ funcname }]的参数|.
             http_msg 'INTERFACE' 200 'OK' 'S' rtmsg '' '' json_meta_full.
           ELSE.
             json = server->request->if_http_entity~get_cdata( ).
+            " 添加对入参的日志记录  24.09.2024 10:00:04 by kkw
+            CALL METHOD zcl_dingtalk_callback=>add_log
+              EXPORTING
+                name       = funcname
+                eventtype  = CONV rs38l_par_( 'HTTP2RFC' )
+                detail_ori = json
+*               detail     = res
+                secds      = 0.
             CALL METHOD me->exec_rfc_crtdata
               EXPORTING
                 funcname  = funcname

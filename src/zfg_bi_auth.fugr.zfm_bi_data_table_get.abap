@@ -85,17 +85,8 @@ FUNCTION zfm_bi_data_table_get .
           INTO CORRESPONDING FIELDS OF TABLE @<tab>
           UP TO @ld_max_row ROWS
           .
-      CATCH cx_sy_dynamic_osql_semantics INTO DATA(e_semantics).
-        DATA(e_semantics_text) = e_semantics->if_message~get_text( ).
-        rtmsg = |表名[{ tabname }]查询条件[{ wa_where-wherestr }]出错:{ e_semantics_text }|.
-        fillmsg 'E' rtmsg.
-      CATCH cx_sy_dynamic_osql_syntax INTO DATA(e_syntax).
-        DATA(e_syntax_text) = e_syntax->if_message~get_text( ).
-        rtmsg = |表名[{ tabname }]查询条件[{ wa_where-wherestr }]出错:{ e_syntax_text }|.
-        fillmsg 'E' rtmsg.
-      CATCH cx_sy_open_sql_db INTO DATA(e_db).
-        DATA(e_db_text) = e_db->if_message~get_text( ).
-        rtmsg = |表名[{ tabname }]查询条件[{ wa_where-wherestr }]出错:{ e_db_text }|.
+      CATCH cx_root INTO DATA(exc).
+        rtmsg = |表名[{ tabname }]查询条件[{ wa_where-wherestr }]出错:[{ exc->get_text( ) }]|.
         fillmsg 'E' rtmsg.
     ENDTRY.
     rtype = 'S'.
