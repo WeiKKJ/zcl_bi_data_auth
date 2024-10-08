@@ -1,18 +1,23 @@
 # 关于这项服务的使用说明
 这是一个获取SAP的ALV报表、底表和RFC数据的HTTP接口服务。  
   
-它以SICF 服务的形式提供此接口，在此系统中，此服务已分配给 SICF 服务[/sap/bc/zsicf_bi](http://vhcala4hci:50000/sap/bc/zsicf_bi "调用地址")。  
+它以ICF 服务的形式提供此接口，在此系统中，此服务已分配给 ICF 服务[/sap/bc/zsicf_bi](http://vhcala4hci:50000/sap/bc/zsicf_bi "调用地址")。  
 
 ## 权限检查
-该服务包含一个对名为 ZBI_AUTH ZBI_AUTH_F 的自定义授权对象的AUTHORITY_CHECK调用，用于验证用户是否可以访问事务码、底表或RFC,需要为每个访问该服务的用户都创建一个单独的角色，其中只有允许他访问的功能。
+
+该服务包含一个对名为 ZBI_AUTH、ZBI_AUTH_F 的自定义授权对象的AUTHORITY_CHECK调用，用于验证用户是否可以访问事务码、底表或RFC,需要为每个访问该服务的用户都创建一个单独的角色，其中只有允许他访问的功能。
+
 **权限对象**：
+
 ![pF2QXjg.jpg](https://s21.ax1x.com/2024/03/16/pF2QXjg.jpg)
+
 **权限角色**：
+
 ![pF2lLI1.jpg](https://s21.ax1x.com/2024/03/16/pF2lLI1.jpg)
 
 该服务提供了五类方法：获取ALV报表选择屏幕参数、获取ALV报表数据、获取底表数据、获取RFC出入参和调用RFC，具体请求示例请查看下面的详细介绍。
 ## 获取ALV报表选择屏幕参数
-curl请求：
+cURL请求：
 
     curl --location 'http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=01&tcode=[事务码]' \
 	--header 'Content-Type: application/x-www-form-urlencoded' \
@@ -36,7 +41,7 @@ curl请求：
 	}
 
 ## 获取ALV报表数据
-curl请求：
+cURL请求：
 
     curl --location 'http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=01&tcode=[事务码]' \
 	--header 'Content-Type: application/json' \
@@ -73,7 +78,7 @@ curl请求：
 	}
 
 ## 获取底表数据
-curl请求：
+cURL请求：
 
     curl --location 'http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=01&tabname=[透明表表名]' \
 	--header 'Content-Type: application/json' \
@@ -100,7 +105,7 @@ curl请求：
 		]
 	}
 ## 获取RFC出入参
-curl请求：
+cURL请求：
 
     curl --location 'http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=01&funcname=[RFC名]' \
 	--header 'Content-Type: application/x-www-form-urlencoded' \
@@ -119,7 +124,7 @@ curl请求：
 		}
 	}
 ## 调用RFC
-curl请求：
+cURL请求：
 
     curl --location 'http://vhcala4hci:50000/sap/bc/zsicf_bi?sap-client=01&funcname=[RFC名]' \
 	--header 'Content-Type: application/json' \
