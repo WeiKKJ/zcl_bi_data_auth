@@ -449,7 +449,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
             CALL METHOD zcl_dingtalk_callback=>add_log
               EXPORTING
                 name       = funcname
-                eventtype  = CONV rs38l_par_( 'HTTP2RFC' )
+                eventtype  = CONV rs38l_par_( 'RFC2HTTP' )
                 detail_ori = json
 *               detail     = res
                 secds      = 0.
