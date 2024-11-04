@@ -1,67 +1,56 @@
-CLASS zcl_bi_data_auth DEFINITION
-  PUBLIC
-  FINAL
-  CREATE PUBLIC .
+class ZCL_BI_DATA_AUTH definition
+  public
+  final
+  create public .
 
-  PUBLIC SECTION.
+public section.
 
-    INTERFACES if_http_extension .
+  interfaces IF_HTTP_EXTENSION .
 
-    CLASS-METHODS exec_rfc
-      IMPORTING
-        VALUE(funcname)  TYPE tfdir-funcname
-        VALUE(interface) TYPE string
-      EXPORTING
-        VALUE(out_json)  TYPE string
-        VALUE(rtype)     TYPE bapi_mtype
-        VALUE(rtmsg)     TYPE bapi_msg .
-    CLASS-METHODS exec_rfc_crtdata
-      IMPORTING
-        VALUE(funcname)  TYPE tfdir-funcname
-        VALUE(interface) TYPE string
-      EXPORTING
-        VALUE(out_json)  TYPE string
-        VALUE(rtype)     TYPE bapi_mtype
-        VALUE(rtmsg)     TYPE bapi_msg .
+  class-methods EXEC_RFC_CRTDATA
+    importing
+      value(FUNCNAME) type TFDIR-FUNCNAME
+      value(INTERFACE) type STRING
+    exporting
+      value(OUT_JSON) type STRING
+      value(RTYPE) type BAPI_MTYPE
+      value(RTMSG) type BAPI_MSG .
   PROTECTED SECTION.
-  PRIVATE SECTION.
+private section.
 
-    DATA my_service TYPE string .
-    DATA my_url TYPE string .
-    DATA my_params TYPE tihttpnvp .
-    DATA:
-      datatypescont TYPE TABLE OF rfc_metadata_ddic .
+  data MY_SERVICE type STRING .
+  data MY_URL type STRING .
+  data MY_PARAMS type TIHTTPNVP .
+  data:
+    datatypescont TYPE TABLE OF rfc_metadata_ddic .
 
-    METHODS get_rsparams
-      IMPORTING
-        VALUE(tcode)    TYPE sy-tcode
-      RETURNING
-        VALUE(rsparams) TYPE string
-      EXCEPTIONS
-        tcode_not_found .
-    METHODS get_interface
-      IMPORTING
-        VALUE(tabname)   TYPE tabname
-        VALUE(fieldname) TYPE fieldname OPTIONAL
-      RETURNING
-        VALUE(out_json)  TYPE string .
-    METHODS get_query
-      IMPORTING
-        VALUE(query_string) TYPE string
-        VALUE(key)          TYPE string
-      EXPORTING
-        VALUE(value)        TYPE string .
-    METHODS get_params
-      IMPORTING
-        VALUE(params)    TYPE string
-      RETURNING
-        VALUE(my_params) TYPE tihttpnvp .
-    METHODS notes
-      RETURNING
-        VALUE(text) TYPE string .
-    METHODS notes2
-      RETURNING
-        VALUE(text) TYPE string .
+  methods GET_RSPARAMS
+    importing
+      value(TCODE) type SY-TCODE
+    returning
+      value(RSPARAMS) type STRING
+    exceptions
+      TCODE_NOT_FOUND .
+  methods GET_INTERFACE
+    importing
+      value(TABNAME) type TABNAME
+      value(FIELDNAME) type FIELDNAME optional
+    returning
+      value(OUT_JSON) type STRING .
+  methods GET_QUERY
+    importing
+      value(QUERY_STRING) type STRING
+      value(KEY) type STRING
+    exporting
+      value(VALUE) type STRING .
+  methods GET_PARAMS
+    importing
+      value(PARAMS) type STRING
+    returning
+      value(MY_PARAMS) type TIHTTPNVP .
+  methods NOTES
+    returning
+      value(TEXT) type STRING .
 ENDCLASS.
 
 
@@ -262,7 +251,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
       WHEN 'GET'.
         server->response->set_header_field( name = 'Content-Type'  value = 'text/html' ).
         server->response->set_status( code = 200 reason = 'OK' ).
-        json = me->notes2( ).
+        json = me->notes( ).
         server->response->set_cdata( json ).
       WHEN 'POST'.
         READ TABLE lt_header INTO wa_header WITH KEY name = '~query_string' .
@@ -483,131 +472,6 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
   ENDMETHOD.
 
 
-  METHOD notes.
-    CLEAR text.
-    CONCATENATE
-`<!DOCTYPE html>`
-`<html>`
-``
-`<head>`
-`  <meta charset="utf-8">`
-`  <meta name="viewport" content="width=device-width, initial-scale=1.0">`
-`  <title>ZCL_BI_DATA_AUTH</title>`
-`  <link rel="stylesheet" href="https://stackedit.io/style.css" />`
-`</head>`
-``
-`<body class="stackedit">`
-`  <div class="stackedit__html"><h1 id="关于这项服务的使用说明">关于这项服务的使用说明</h1>`
-`<p>这是一个获取SAP的ALV报表和底表数据的HTTP接口服务。</p>`
-`<p>它以 ICF 服务的形式提供此接口，在此系统中，此服务已分配给 ICF 服务<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `" title="调用地址">` me->my_service `</a>。</p>`
-`<h2 id="权限检查">权限检查</h2>`
-`<p>该服务包含一个对名为 ZBI_AUTH 的自定义授权对象的 AUTHORITY-CHECK OBJECT调用，用于验证用户是否可以访问事务码或者底表,需要为每个访问该服务的用户都创建一个单独的角色，其中只有允许他访问的功能。<br>`
-`<strong>权限对象</strong>：<br>`
-`<img src="https://s21.ax1x.com/2024/03/16/pF2QXjg.jpg" alt="pF2QXjg.jpg"><br>`
-`<strong>权限角色</strong>：<br>`
-`<img src="https://s21.ax1x.com/2024/03/16/pF2lLI1.jpg" alt="pF2lLI1.jpg"></p>`
-`<p>该服务提供了三类方法：获取ALV报表选择屏幕参数、获取ALV报表数据、获取底表数据，具体请求示例请查看下面的详细介绍。</p>`
-`<h2 id="获取alv报表选择屏幕参数">获取ALV报表选择屏幕参数</h2>`
-`<p>请求地址：<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `&tcode=%5Btcode%5D%5D" title="获取ALV报表选择屏幕参数">` me->my_url me->my_service `?sap-client=` sy-mandt `&tcode=[tcode]</a><br>`
-`请求方法：POST<br>`
-`Content-Type: "application/x-www-form-urlencoded"<br>`
-`请求体: action: "rsparams"<br>`
-`返回消息结构：</p>`
-`<pre><code>{`
-`	"rtype": "消息类型: S 成功,E 错误,W 警告,I 信息,A 中断",`
-`	"rtmsg": "消息文本",`
-`	"rsparams": [`
-`   {`
-`     "selname": "ABAP：SELECT-OPTION/PARAMETER 的名称",`
-`     "kind": "ABAP/4: 选择类型，单选字段配置'P'，多选字段配置'S'",`
-`     "sign": "ABAP/4: ID: I/E (包括/不包括值)",`
-`     "option": "ABAP/4: 选择选项 (EQ/BT/CP/...)",`
-`     "low": "ABAP：选择值（LOW 值，外部格式）",`
-`     "high": "ABAP：选择值（HIGH 值，外部格式）"`
-`   }`
-`	]`
-`}`
-`</code></pre>`
-`<h2 id="获取alv报表数据">获取ALV报表数据</h2>`
-`<p>请求地址：<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `&tcode=%5Btcode%5D%5D" title="获取ALV报表数据">` me->my_url me->my_service `?sap-client=` sy-mandt `&tcode=[tcode]</a><br>`
-`请求方法：POST<br>`
-`content-type: "application/json;charset=utf-8"<br>`
-`请求体:</p>`
-`<pre><code>[`
-`	{`
-`   "selname": "ABAP：SELECT-OPTION/PARAMETER 的名称",`
-`   "kind": "ABAP/4: 选择类型，单选字段配置'P'，多选字段配置'S'",`
-`   "sign": "ABAP/4: ID: I/E (包括/不包括值)",`
-`   "option": "ABAP/4: 选择选项 (EQ/BT/CP/...)",`
-`   "low": "ABAP：选择值（LOW 值，外部格式）",`
-`   "high": "ABAP：选择值（HIGH 值，外部格式）"`
-`	}`
-`]`
-`</code></pre>`
-`<p>返回消息结构：</p>`
-`<pre><code>{`
-`	"rtype": "消息类型: S 成功,E 错误,W 警告,I 信息,A 中断",`
-`	"rtmsg": "消息文本",`
-`	"mapping": [`
-`   {`
-`     "fieldname": "字段名",`
-`     "scrtext_s": "短字段描述",`
-`     "scrtext_m": "中字段描述",`
-`     "scrtext_l": "长字段描述"`
-`   }`
-`	],`
-`	"data": [`
-`   {`
-`     "字段名": "字段值"`
-`   }`
-`	]`
-`}`
-`</code></pre>`
-`<h2 id="获取底表数据">获取底表数据</h2>`
-`<p>请求地址：<a href="` me->my_url me->my_service `?sap-client=` sy-mandt `&tabname=%5Btabname%5D%5D" title="获取底表数据">` me->my_url me->my_service `?sap-client=` sy-mandt `&tabname=[tabname]</a><br>`
-`请求方法：POST<br>`
-`content-type: "application/json;charset=utf-8" <br>`
-`请求体(可选):</p>`
-`<pre><code>{`
-`	"wherestr": "SQL查询条件，不用加where"`
-`}`
-`</code></pre>`
-`返回消息结构：</p>`
-`<pre><code>{`
-`	"rtype": "消息类型: S 成功,E 错误,W 警告,I 信息,A 中断",`
-`	"rtmsg": "消息文本",`
-`	"mapping": [`
-`   {`
-`     "fieldname": "字段名",`
-`     "scrtext_s": "短字段描述",`
-`     "scrtext_m": "中字段描述",`
-`     "scrtext_l": "长字段描述"`
-`   }`
-`	],`
-`	"data": [`
-`   {`
-`     "字段名": "字段值"`
-`   }`
-`	]`
-`}`
-`</code></pre>`
-`<h2 id="后续计划">后续计划</h2>`
-`<ol>`
-`<li><s>取底表数据添加OPEN SQL查询条件</s></li>`
-`<li>扩展下支持通过http调用RFC接口（完善<a href="https://github.com/cesar-sap/abap_fm_json" title="abap_fm_json">cesar-sap/abap_fm_json</a>不支持全部参数的缺陷），但是感觉这样做意义不是太大。</li>`
-`<li>想得到再说吧</li>`
-`</ol>`
-`<h2 id="联系我">联系我</h2>`
-`<p>邮箱：<a href="mailto:weikj@foxmail.com" title="kkw">weikj@foxmail.com</a></p>`
-`</div>`
-`</body>`
-``
-`</html>`
-
-    INTO text  RESPECTING BLANKS.
-  ENDMETHOD.
-
-
   METHOD get_interface.
     DATA:json_meta_sub  TYPE string,
          json_meta_sub1 TYPE string.
@@ -661,19 +525,18 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
   ENDMETHOD.
 
 
-  METHOD exec_rfc.
+  METHOD exec_rfc_crtdata.
     DATA:t_params_p TYPE TABLE OF rfc_fint_p,
-         params_p   TYPE rfc_fint_p,
          paramtab   TYPE abap_func_parmbind_tab,
          paramline  TYPE LINE OF abap_func_parmbind_tab,
+         exceptab   TYPE abap_func_excpbind_tab,
          dataname   TYPE string.
-    DATA:dref_int TYPE REF TO data,
-         dref     TYPE REF TO data.
+    DATA:dref     TYPE REF TO data,
+         dref_req TYPE REF TO data.
     DATA:table_type TYPE REF TO cl_abap_tabledescr,
          data_type  TYPE REF TO cl_abap_datadescr.
-    DATA:paramclass TYPE rs38l_kind.
-    DATA:json_meta      TYPE string,
-         json_meta_full TYPE string.
+    DATA:component_table      TYPE abap_component_tab,
+         componentclass_table TYPE abap_component_tab.
     CLEAR:rtype,rtmsg,out_json.
     CALL FUNCTION 'RFC_GET_FUNCTION_INTERFACE_P'
       EXPORTING
@@ -686,110 +549,156 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
         OTHERS        = 3.
     IF sy-subrc <> 0.
       rtype = 'E'.
-      rtmsg = |调用RFC：{ funcname }发生了异常，状态码：{ sy-subrc }|.
+      rtmsg = |获取RFC：[{ funcname }]参数发生了异常，状态码：[{ sy-subrc }]|.
     ENDIF.
-    /ui2/cl_json=>deserialize( EXPORTING json = interface  pretty_name = /ui2/cl_json=>pretty_mode-low_case CHANGING data = dref_int ).
-    CLEAR:paramtab.
-    LOOP AT t_params_p INTO params_p WHERE paramclass = 'I' OR paramclass = 'E' OR paramclass = 'C' OR paramclass = 'T'.
-      CLEAR:paramline,dataname.
-      CASE params_p-paramclass.
-        WHEN 'I' OR 'E' OR 'C' OR 'T'.
-          paramline-name = params_p-parameter.
-          IF params_p-paramclass = 'E'.
-            paramline-kind = abap_func_importing.
-          ELSEIF params_p-paramclass = 'I'.
-            paramline-kind = abap_func_exporting.
-          ELSEIF params_p-paramclass = 'C'.
-            paramline-kind = abap_func_changing.
-          ELSE.
-            paramline-kind = abap_func_tables.
-          ENDIF.
-          IF params_p-fieldname IS INITIAL.
-            dataname = params_p-tabname.
-          ELSE.
-            CONCATENATE params_p-tabname params_p-fieldname INTO dataname SEPARATED BY '-'.
-          ENDIF.
-          CLEAR:dref.
-          TRY.
-              data_type ?= cl_abap_datadescr=>describe_by_name( p_name = dataname ).
-            CATCH cx_sy_move_cast_error.
-              CONTINUE.
-          ENDTRY.
-          CLEAR table_type.
-          IF params_p-paramclass = 'T'.
-            IF data_type->kind = 'S'.
-              table_type ?= cl_abap_tabledescr=>create( p_line_type = data_type ).
-            ELSE.
-              table_type ?= data_type.
-            ENDIF.
-            CREATE DATA dref TYPE HANDLE table_type.
-          ELSE.
-            CREATE DATA dref TYPE HANDLE data_type .
-          ENDIF.
-          ASSIGN dref->* TO FIELD-SYMBOL(<dref_value>).
-          DATA(value) = |DREF_INT->{ params_p-paramclass }->{ params_p-parameter }|.
-          ASSIGN (value) TO FIELD-SYMBOL(<value>).
-          IF NOT <value> IS ASSIGNED.
-            IF params_p-default IS NOT INITIAL.
-              DATA(len) = strlen( params_p-default ) - 2.
-              IF len GT 0.
-                <dref_value> = params_p-default+1(len).
+    IF t_params_p IS NOT INITIAL.
+      CLEAR:paramtab.
+      LOOP AT t_params_p ASSIGNING FIELD-SYMBOL(<params_p>)
+       " WHERE paramclass = 'I' OR paramclass = 'E' OR paramclass = 'C' OR paramclass = 'T'
+        GROUP BY ( paramclass = <params_p>-paramclass
+        index = GROUP INDEX size = GROUP SIZE
+        ) ASSIGNING FIELD-SYMBOL(<groupcrt>).
+        CLEAR:componentclass_table,paramline.
+        LOOP AT GROUP <groupcrt> ASSIGNING FIELD-SYMBOL(<memcrt>).
+          CLEAR:paramline,dataname.
+          CASE <groupcrt>-paramclass.
+            WHEN 'I' OR 'E' OR 'C' OR 'T'.
+              paramline-name = <memcrt>-parameter.
+              IF <groupcrt>-paramclass = 'E'.
+                paramline-kind = abap_func_importing.
+              ELSEIF <groupcrt>-paramclass = 'I'.
+                paramline-kind = abap_func_exporting.
+              ELSEIF <groupcrt>-paramclass = 'C'.
+                paramline-kind = abap_func_changing.
+              ELSE.
+                paramline-kind = abap_func_tables.
               ENDIF.
-            ENDIF.
-          ELSE.
-            DATA(value_json) = /ui2/cl_json=>serialize( data = <value> compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-none ).
-            /ui2/cl_json=>deserialize( EXPORTING json = value_json pretty_name = /ui2/cl_json=>pretty_mode-none CHANGING data = <dref_value> ).
+              IF <memcrt>-fieldname IS INITIAL.
+                dataname = <memcrt>-tabname.
+              ELSE.
+                CONCATENATE <memcrt>-tabname <memcrt>-fieldname INTO dataname SEPARATED BY '-'.
+              ENDIF.
+              CLEAR data_type.
+              TRY.
+                  data_type ?= cl_abap_datadescr=>describe_by_name( p_name = dataname ).
+                CATCH cx_root INTO DATA(excd).
+                  DATA(exc_msg) = excd->get_text( ).
+                  CONTINUE.
+              ENDTRY.
+              CLEAR:table_type,dref.
+              IF <groupcrt>-paramclass = 'T'.
+                IF data_type->kind = 'S'.
+                  table_type ?= cl_abap_tabledescr=>create( p_line_type = data_type ).
+                ELSE.
+                  table_type ?= data_type.
+                ENDIF.
+                CREATE DATA dref TYPE HANDLE table_type.
+              ELSE.
+                CREATE DATA dref TYPE HANDLE data_type.
+              ENDIF.
+              paramline-value = dref.
+              IF <memcrt>-default IS NOT INITIAL.
+                ASSIGN dref->* TO FIELD-SYMBOL(<dref_value>).
+                DATA(len) = strlen( <memcrt>-default ) - 2.
+                IF len GT 0.
+                  <dref_value> = <memcrt>-default+1(len).
+                ENDIF.
+              ENDIF.
+              INSERT paramline INTO TABLE paramtab.
+
+              INSERT INITIAL LINE INTO TABLE componentclass_table ASSIGNING FIELD-SYMBOL(<ctclass>).
+              <ctclass>-name         = <memcrt>-parameter.
+              <ctclass>-as_include   = ''.
+              <ctclass>-suffix       = ''.
+              <ctclass>-type ?= cl_abap_typedescr=>describe_by_data_ref( p_data_ref = dref ).
+            WHEN OTHERS.
+          ENDCASE.
+        ENDLOOP.
+        IF componentclass_table IS NOT INITIAL.
+          INSERT INITIAL LINE INTO TABLE component_table ASSIGNING FIELD-SYMBOL(<ct>).
+          <ct>-name         = <groupcrt>-paramclass.
+          <ct>-as_include   = ''.
+          <ct>-suffix       = ''.
+          <ct>-type ?= cl_abap_structdescr=>create( componentclass_table ).
+        ENDIF.
+      ENDLOOP.
+      DATA(result) = cl_abap_structdescr=>create( component_table ).
+      CREATE DATA dref TYPE HANDLE result.
+      /ui2/cl_json=>deserialize( EXPORTING json = interface  CHANGING data = dref ).
+      /ui2/cl_json=>deserialize( EXPORTING json = interface  CHANGING data = dref_req ).
+      ASSIGN dref->* TO FIELD-SYMBOL(<dref>).
+
+      LOOP AT paramtab ASSIGNING FIELD-SYMBOL(<paramline>).
+        CASE <paramline>-kind.
+          WHEN abap_func_importing.
+            DATA(kind) = 'E'.
+          WHEN abap_func_exporting.
+            kind = 'I'.
+          WHEN abap_func_changing.
+            kind = 'C'.
+          WHEN abap_func_tables.
+            kind = 'T'.
+        ENDCASE.
+        DATA(dref_input_name) = to_upper( |<dref>-{ kind }-{ <paramline>-name }| ).
+        ASSIGN (dref_input_name) TO FIELD-SYMBOL(<dref_input_value>).
+        IF sy-subrc NE 0.
+          UNASSIGN <dref_input_value>.
+          CONTINUE.
+        ENDIF.
+        ASSIGN <paramline>-value->* TO FIELD-SYMBOL(<value>).
+        IF kind = 'I' OR kind = 'C'.
+          DATA(dref_req_name) = to_upper( |dref_req->{ kind }->{ <paramline>-name }->*| ).
+          ASSIGN (dref_req_name) TO FIELD-SYMBOL(<dref_req_value>).
+          IF <dref_req_value> IS ASSIGNED.
+            <value> = <dref_input_value>.
+            UNASSIGN <dref_req_value>.
           ENDIF.
-          paramline-value = dref.
-          INSERT paramline INTO TABLE paramtab.
-          UNASSIGN:<value>,<dref_value>.
-        WHEN OTHERS.
-*          RAISE unsupported_param_type.
-      ENDCASE.
-    ENDLOOP.
+        ELSEIF kind = 'T'.
+          <value> = <dref_input_value>.
+        ENDIF.
+        UNASSIGN <dref_input_value>.
+      ENDLOOP.
+    ENDIF.
     TRY.
         CALL FUNCTION funcname
-          PARAMETER-TABLE
-          paramtab.
-        json_meta_full = `{`.
-        LOOP AT paramtab ASSIGNING FIELD-SYMBOL(<paramtab>) GROUP BY ( kind = <paramtab>-kind
-          size = GROUP SIZE index = GROUP INDEX
-          ) ASCENDING ASSIGNING FIELD-SYMBOL(<group>).
-          CLEAR paramclass.
-          CASE <group>-kind.
+          PARAMETER-TABLE paramtab
+          EXCEPTION-TABLE exceptab.
+        .
+        CLEAR kind.
+        LOOP AT paramtab ASSIGNING <paramline> WHERE kind = abap_func_importing OR kind = abap_func_changing OR kind = abap_func_tables.
+          CASE <paramline>-kind.
             WHEN abap_func_importing.
-              paramclass = 'E'.
+              kind = 'E'.
             WHEN abap_func_exporting.
-              paramclass = 'I'.
+              kind = 'I'.
             WHEN abap_func_changing.
-              paramclass = 'C'.
+              kind = 'C'.
             WHEN abap_func_tables.
-              paramclass = 'T'.
+              kind = 'T'.
           ENDCASE.
-          json_meta_full = json_meta_full && |"{ paramclass }":| && `{`.
-          LOOP AT GROUP <group> ASSIGNING FIELD-SYMBOL(<mem>).
-            DATA(json) = /ui2/cl_json=>serialize( data = <mem>-value compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-none ).
-            json_meta = |"{ <mem>-name }":{ json }| .
-            json_meta_full = json_meta_full && json_meta && ',' .
-          ENDLOOP.
-          SHIFT json_meta_full RIGHT DELETING TRAILING ','.
-          json_meta_full = json_meta_full && `},`.
+          DATA(dref_iput_namen) = to_upper( |<dref>-{ kind }-{ <paramline>-name }| ).
+          ASSIGN (dref_iput_namen) TO FIELD-SYMBOL(<dref_iput_valuen>).
+          IF sy-subrc NE 0.
+            UNASSIGN <dref_iput_valuen>.
+          ENDIF.
+          IF <dref_iput_valuen> IS ASSIGNED.
+            ASSIGN <paramline>-value->* TO FIELD-SYMBOL(<valuen>).
+            <dref_iput_valuen> = <valuen>.
+          ENDIF.
         ENDLOOP.
-        SHIFT json_meta_full RIGHT DELETING TRAILING ','.
-        json_meta_full = json_meta_full && `}` .
+        out_json = /ui2/cl_json=>serialize( data = <dref> compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-none ).
         rtype = 'S'.
-        rtmsg = |执行函数{ funcname }未发生异常，执行结果请查看interface节点参数|.
-        out_json = json_meta_full.
+        rtmsg = |执行函数[{ funcname }]未发生异常，执行结果请查看interface节点参数|.
       CATCH cx_root INTO DATA(exc).
         rtype = 'E'.
-        rtmsg = |执行函数{ funcname }发生了异常：{ exc->get_text( ) }|.
+        rtmsg = |执行函数[{ funcname }]发生了异常：[{ exc->get_text( ) }]|.
         out_json = `{}`.
     ENDTRY.
 
   ENDMETHOD.
 
 
-  METHOD notes2.
+  METHOD NOTES.
     CLEAR text.
     CONCATENATE
 
@@ -988,176 +897,5 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 
 
     INTO text  RESPECTING BLANKS.
-  ENDMETHOD.
-
-
-  METHOD exec_rfc_crtdata.
-    DATA:t_params_p TYPE TABLE OF rfc_fint_p,
-         paramtab   TYPE abap_func_parmbind_tab,
-         paramline  TYPE LINE OF abap_func_parmbind_tab,
-         dataname   TYPE string.
-    DATA:dref     TYPE REF TO data,
-         dref_req TYPE REF TO data.
-    DATA:table_type TYPE REF TO cl_abap_tabledescr,
-         data_type  TYPE REF TO cl_abap_datadescr.
-    DATA:component_table      TYPE abap_component_tab,
-         componentclass_table TYPE abap_component_tab.
-    CLEAR:rtype,rtmsg,out_json.
-    CALL FUNCTION 'RFC_GET_FUNCTION_INTERFACE_P'
-      EXPORTING
-        funcname      = funcname
-      TABLES
-        params_p      = t_params_p
-      EXCEPTIONS
-        fu_not_found  = 1
-        nametab_fault = 2
-        OTHERS        = 3.
-    IF sy-subrc <> 0.
-      rtype = 'E'.
-      rtmsg = |获取RFC：{ funcname }参数发生了异常，状态码：{ sy-subrc }|.
-    ENDIF.
-    IF t_params_p IS NOT INITIAL.
-      CLEAR:paramtab.
-      LOOP AT t_params_p ASSIGNING FIELD-SYMBOL(<params_p>)
-       " WHERE paramclass = 'I' OR paramclass = 'E' OR paramclass = 'C' OR paramclass = 'T'
-        GROUP BY ( paramclass = <params_p>-paramclass
-        index = GROUP INDEX size = GROUP SIZE
-        ) ASSIGNING FIELD-SYMBOL(<groupcrt>).
-        CLEAR:componentclass_table,paramline.
-        LOOP AT GROUP <groupcrt> ASSIGNING FIELD-SYMBOL(<memcrt>).
-          CLEAR:paramline,dataname.
-          CASE <groupcrt>-paramclass.
-            WHEN 'I' OR 'E' OR 'C' OR 'T'.
-              paramline-name = <memcrt>-parameter.
-              IF <groupcrt>-paramclass = 'E'.
-                paramline-kind = abap_func_importing.
-              ELSEIF <groupcrt>-paramclass = 'I'.
-                paramline-kind = abap_func_exporting.
-              ELSEIF <groupcrt>-paramclass = 'C'.
-                paramline-kind = abap_func_changing.
-              ELSE.
-                paramline-kind = abap_func_tables.
-              ENDIF.
-              IF <memcrt>-fieldname IS INITIAL.
-                dataname = <memcrt>-tabname.
-              ELSE.
-                CONCATENATE <memcrt>-tabname <memcrt>-fieldname INTO dataname SEPARATED BY '-'.
-              ENDIF.
-              CLEAR data_type.
-              TRY.
-                  data_type ?= cl_abap_datadescr=>describe_by_name( p_name = dataname ).
-                CATCH cx_root INTO DATA(excd).
-                  DATA(exc_msg) = excd->get_text( ).
-                  CONTINUE.
-              ENDTRY.
-              CLEAR:table_type,dref.
-              IF <groupcrt>-paramclass = 'T'.
-                IF data_type->kind = 'S'.
-                  table_type ?= cl_abap_tabledescr=>create( p_line_type = data_type ).
-                ELSE.
-                  table_type ?= data_type.
-                ENDIF.
-                CREATE DATA dref TYPE HANDLE table_type.
-              ELSE.
-                CREATE DATA dref TYPE HANDLE data_type.
-              ENDIF.
-              paramline-value = dref.
-              IF <memcrt>-default IS NOT INITIAL.
-                ASSIGN dref->* TO FIELD-SYMBOL(<dref_value>).
-                DATA(len) = strlen( <memcrt>-default ) - 2.
-                IF len GT 0.
-                  <dref_value> = <memcrt>-default+1(len).
-                ENDIF.
-              ENDIF.
-              INSERT paramline INTO TABLE paramtab.
-
-              INSERT INITIAL LINE INTO TABLE componentclass_table ASSIGNING FIELD-SYMBOL(<ctclass>).
-              <ctclass>-name         = <memcrt>-parameter.
-              <ctclass>-as_include   = ''.
-              <ctclass>-suffix       = ''.
-              <ctclass>-type ?= cl_abap_typedescr=>describe_by_data_ref( p_data_ref = dref ).
-            WHEN OTHERS.
-          ENDCASE.
-        ENDLOOP.
-        IF componentclass_table IS NOT INITIAL.
-          INSERT INITIAL LINE INTO TABLE component_table ASSIGNING FIELD-SYMBOL(<ct>).
-          <ct>-name         = <groupcrt>-paramclass.
-          <ct>-as_include   = ''.
-          <ct>-suffix       = ''.
-          <ct>-type ?= cl_abap_structdescr=>create( componentclass_table ).
-        ENDIF.
-      ENDLOOP.
-      DATA(result) = cl_abap_structdescr=>create( component_table ).
-      CREATE DATA dref TYPE HANDLE result.
-      /ui2/cl_json=>deserialize( EXPORTING json = interface  CHANGING data = dref ).
-      /ui2/cl_json=>deserialize( EXPORTING json = interface  CHANGING data = dref_req ).
-      ASSIGN dref->* TO FIELD-SYMBOL(<dref>).
-
-      LOOP AT paramtab ASSIGNING FIELD-SYMBOL(<paramline>).
-        CASE <paramline>-kind.
-          WHEN abap_func_importing.
-            DATA(kind) = 'E'.
-          WHEN abap_func_exporting.
-            kind = 'I'.
-          WHEN abap_func_changing.
-            kind = 'C'.
-          WHEN abap_func_tables.
-            kind = 'T'.
-        ENDCASE.
-        DATA(dref_input_name) = to_upper( |<dref>-{ kind }-{ <paramline>-name }| ).
-        ASSIGN (dref_input_name) TO FIELD-SYMBOL(<dref_input_value>).
-        IF sy-subrc NE 0.
-          UNASSIGN <dref_input_value>.
-          CONTINUE.
-        ENDIF.
-        ASSIGN <paramline>-value->* TO FIELD-SYMBOL(<value>).
-        IF kind = 'I' OR kind = 'C'.
-          DATA(dref_req_name) = to_upper( |dref_req->{ kind }->{ <paramline>-name }->*| ).
-          ASSIGN (dref_req_name) TO FIELD-SYMBOL(<dref_req_value>).
-          IF <dref_req_value> IS ASSIGNED.
-            <value> = <dref_input_value>.
-            UNASSIGN <dref_req_value>.
-          ENDIF.
-        ELSEIF kind = 'T'.
-          <value> = <dref_input_value>.
-        ENDIF.
-        UNASSIGN <dref_input_value>.
-      ENDLOOP.
-    ENDIF.
-    TRY.
-        CALL FUNCTION funcname
-          PARAMETER-TABLE
-          paramtab.
-        CLEAR kind.
-        LOOP AT paramtab ASSIGNING <paramline> WHERE kind = abap_func_importing OR kind = abap_func_changing OR kind = abap_func_tables.
-          CASE <paramline>-kind.
-            WHEN abap_func_importing.
-              kind = 'E'.
-            WHEN abap_func_exporting.
-              kind = 'I'.
-            WHEN abap_func_changing.
-              kind = 'C'.
-            WHEN abap_func_tables.
-              kind = 'T'.
-          ENDCASE.
-          DATA(dref_iput_namen) = to_upper( |<dref>-{ kind }-{ <paramline>-name }| ).
-          ASSIGN (dref_iput_namen) TO FIELD-SYMBOL(<dref_iput_valuen>).
-          IF sy-subrc NE 0.
-            UNASSIGN <dref_iput_valuen>.
-          ENDIF.
-          IF <dref_iput_valuen> IS ASSIGNED.
-            ASSIGN <paramline>-value->* TO FIELD-SYMBOL(<valuen>).
-            <dref_iput_valuen> = <valuen>.
-          ENDIF.
-        ENDLOOP.
-        out_json = /ui2/cl_json=>serialize( data = <dref> compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-none ).
-        rtype = 'S'.
-        rtmsg = |执行函数{ funcname }未发生异常，执行结果请查看interface节点参数|.
-      CATCH cx_root INTO DATA(exc).
-        rtype = 'E'.
-        rtmsg = |执行函数{ funcname }发生了异常：{ exc->get_text( ) }|.
-        out_json = `{}`.
-    ENDTRY.
-
   ENDMETHOD.
 ENDCLASS.

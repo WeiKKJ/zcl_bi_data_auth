@@ -20,25 +20,6 @@ FUNCTION zfm_bi_data_table_get .
   zfmdatasave1 'ZFM_BI_DATA_TABLE_GET'.
   zfmdatasave2 'B'.
   COMMIT WORK.
-  CLEAR:rtype,rtmsg,out_json,out_mapping_json.
-  IF tabname IS INITIAL.
-    rtype = 'E'.
-    rtmsg = 'tabname不能为空'.
-    zfmdatasave2 'R'.
-    EXIT.
-  ENDIF.
-  SELECT COUNT(*) FROM dd02l WHERE tabname = @tabname AND as4local = 'A'.
-  IF sy-subrc NE 0.
-    rtmsg = |表名[{ tabname }]不存在或处于未激活状态|.
-    fillmsg 'E' rtmsg.
-  ENDIF.
-*  调整为逻辑和rfc_read_table类似，添加open sql查询条件  18.04.2024 14:45:59 by kkw
-  AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TABLE' FIELD tabname.
-*  AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TABLE' FIELD tabname.
-  IF sy-subrc NE 0.
-    rtmsg = |你没有底表[{ tabname }]的权限|.
-    fillmsg 'E' rtmsg.
-  ENDIF.
   DATA:ls_data   TYPE REF TO data,
        dfies_tab TYPE TABLE OF dfies,
        tablename TYPE ddobjname,
@@ -55,11 +36,28 @@ FUNCTION zfm_bi_data_table_get .
            wherestr TYPE string,
          END OF t_JSON1.
   DATA:wa_where TYPE t_JSON1.
-
+  CLEAR:rtype,rtmsg,out_json,out_mapping_json.
+  IF tabname IS INITIAL.
+    rtype = 'E'.
+    rtmsg = 'tabname不能为空'.
+    zfmdatasave2 'R'.
+    EXIT.
+  ENDIF.
+  AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TABLE' FIELD tabname.
+  IF sy-subrc NE 0.
+    rtmsg = |你没有底表[{ tabname }]的权限|.
+    fillmsg 'E' rtmsg.
+  ENDIF.
+  SELECT COUNT(*) FROM dd02l WHERE tabname = @tabname AND as4local = 'A'.
+  IF sy-subrc NE 0.
+    rtmsg = |表名[{ tabname }]不存在或处于未激活状态|.
+    fillmsg 'E' rtmsg.
+  ENDIF.
 *  赋值where查询条件  18.04.2024 14:55:36 by kkw
   IF where_json IS NOT INITIAL.
     /ui2/cl_json=>deserialize( EXPORTING json = where_json  pretty_name = /ui2/cl_json=>pretty_mode-camel_case CHANGING data = wa_where ).
     SPLIT wa_where-wherestr AT space INTO TABLE options.
+*  调整为逻辑和rfc_read_table类似，添加open sql查询条件  18.04.2024 14:45:59 by kkw
     PERFORM compute_sel_criteria TABLES options[].
     IF options[] IS INITIAL.
       rtmsg = |where查询条件[{ wa_where-wherestr }]出现可疑字符|.

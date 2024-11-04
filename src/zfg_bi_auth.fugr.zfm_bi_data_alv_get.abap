@@ -35,7 +35,6 @@ FUNCTION zfm_bi_data_alv_get.
     fillmsg 'E' rtmsg.
   ENDIF.
   AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TCD' FIELD tcode.
-*  AUTHORITY-CHECK OBJECT 'ZBI_AUTH_C' ID 'ZE_TCODE' FIELD tcode.
   IF sy-subrc NE 0.
     rtmsg = |你没有事务码[{ tcode }]的权限|.
     fillmsg 'E' rtmsg.
@@ -136,31 +135,21 @@ FUNCTION zfm_bi_data_alv_get.
   ENDLOOP.
 
   cl_salv_bs_runtime_info=>set( display = abap_false metadata = abap_true data = abap_true ).
-  SUBMIT (wa_tstc-pgmna) TO SAP-SPOOL SPOOL PARAMETERS pri_params WITHOUT SPOOL DYNPRO
-  WITH SELECTION-TABLE seltab
-  AND RETURN
-    .
   TRY.
-      DATA(gget) = cl_salv_bs_runtime_info=>get( ).
-    CATCH cx_salv_bs_sc_runtime_info.
-
-  ENDTRY.
-  "获取报表数据
-  TRY .
-      cl_salv_bs_runtime_info=>get_data_ref(
-      IMPORTING r_data = ls_data ).
-    CATCH  cx_salv_bs_sc_runtime_info.
+      SUBMIT (wa_tstc-pgmna) TO SAP-SPOOL SPOOL PARAMETERS pri_params WITHOUT SPOOL DYNPRO
+      WITH SELECTION-TABLE seltab
+      AND RETURN
+      .
+      "获取报表数据
+      cl_salv_bs_runtime_info=>get_data_ref( IMPORTING r_data = ls_data ).
+      "获取字段名及其描述
+      DATA(metadata) = cl_salv_bs_runtime_info=>get_metadata( ).
+    CATCH cx_root INTO DATA(exc).
       cl_salv_bs_runtime_info=>clear_all( ).
       rtype = 'E'.
-      rtmsg = |无法获取[{ tcode }]的数据|.
+      rtmsg = |获取[{ tcode }]的数据发生了异常：{ exc->get_text( ) }|.
       zfmdatasave2 'R'.
-      EXIT.
-  ENDTRY.
-  "获取字段名及其描述
-  TRY .
-      DATA(metadata) = cl_salv_bs_runtime_info=>get_metadata( ).
-    CATCH cx_salv_bs_sc_runtime_info.
-      cl_salv_bs_runtime_info=>clear_all( ).
+      RETURN.
   ENDTRY.
   cl_salv_bs_runtime_info=>clear_all( ).
   ASSIGN ls_data->* TO FIELD-SYMBOL(<fs_tab>).
