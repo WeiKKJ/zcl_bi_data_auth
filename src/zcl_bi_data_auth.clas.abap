@@ -1,56 +1,56 @@
-class ZCL_BI_DATA_AUTH definition
-  public
-  final
-  create public .
+CLASS zcl_bi_data_auth DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
 
-public section.
+  PUBLIC SECTION.
 
-  interfaces IF_HTTP_EXTENSION .
+    INTERFACES if_http_extension .
 
-  class-methods EXEC_RFC_CRTDATA
-    importing
-      value(FUNCNAME) type TFDIR-FUNCNAME
-      value(INTERFACE) type STRING
-    exporting
-      value(OUT_JSON) type STRING
-      value(RTYPE) type BAPI_MTYPE
-      value(RTMSG) type BAPI_MSG .
+    CLASS-METHODS exec_rfc_crtdata
+      IMPORTING
+        VALUE(funcname)  TYPE tfdir-funcname
+        VALUE(interface) TYPE string
+      EXPORTING
+        VALUE(out_json)  TYPE string
+        VALUE(rtype)     TYPE bapi_mtype
+        VALUE(rtmsg)     TYPE bapi_msg .
   PROTECTED SECTION.
-private section.
+  PRIVATE SECTION.
 
-  data MY_SERVICE type STRING .
-  data MY_URL type STRING .
-  data MY_PARAMS type TIHTTPNVP .
-  data:
-    datatypescont TYPE TABLE OF rfc_metadata_ddic .
+    DATA my_service TYPE string .
+    DATA my_url TYPE string .
+    DATA my_params TYPE tihttpnvp .
+    DATA:
+      datatypescont TYPE TABLE OF rfc_metadata_ddic .
 
-  methods GET_RSPARAMS
-    importing
-      value(TCODE) type SY-TCODE
-    returning
-      value(RSPARAMS) type STRING
-    exceptions
-      TCODE_NOT_FOUND .
-  methods GET_INTERFACE
-    importing
-      value(TABNAME) type TABNAME
-      value(FIELDNAME) type FIELDNAME optional
-    returning
-      value(OUT_JSON) type STRING .
-  methods GET_QUERY
-    importing
-      value(QUERY_STRING) type STRING
-      value(KEY) type STRING
-    exporting
-      value(VALUE) type STRING .
-  methods GET_PARAMS
-    importing
-      value(PARAMS) type STRING
-    returning
-      value(MY_PARAMS) type TIHTTPNVP .
-  methods NOTES
-    returning
-      value(TEXT) type STRING .
+    METHODS get_rsparams
+      IMPORTING
+        VALUE(tcode)    TYPE sy-tcode
+      RETURNING
+        VALUE(rsparams) TYPE string
+      EXCEPTIONS
+        tcode_not_found .
+    METHODS get_interface
+      IMPORTING
+        VALUE(tabname)   TYPE tabname
+        VALUE(fieldname) TYPE fieldname OPTIONAL
+      RETURNING
+        VALUE(out_json)  TYPE string .
+    METHODS get_query
+      IMPORTING
+        VALUE(query_string) TYPE string
+        VALUE(key)          TYPE string
+      EXPORTING
+        VALUE(value)        TYPE string .
+    METHODS get_params
+      IMPORTING
+        VALUE(params)    TYPE string
+      RETURNING
+        VALUE(my_params) TYPE tihttpnvp .
+    METHODS notes
+      RETURNING
+        VALUE(text) TYPE string .
 ENDCLASS.
 
 
@@ -698,7 +698,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
   ENDMETHOD.
 
 
-  METHOD NOTES.
+  METHOD notes.
     CLEAR text.
     CONCATENATE
 

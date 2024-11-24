@@ -12,7 +12,6 @@
     <item>
      <FUNCNAME>ZFM_BI_DATA_ALV_GET</FUNCNAME>
      <REMOTE_CALL>R</REMOTE_CALL>
-     <SHORT_TEXT>ZFM_ZKKWTEST_ALV1</SHORT_TEXT>
      <IMPORT>
       <RSIMP>
        <PARAMETER>TCODE</PARAMETER>
@@ -46,39 +45,32 @@
       <RSFDO>
        <PARAMETER>TCODE</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>ABAP 系统字段：当前事务代码</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>IN_JSON</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>传入json</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>RTYPE</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>消息类型: S 成功,E 错误,W 警告,I 信息,A 中断</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>RTMSG</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>消息文本</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>OUT_JSON</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>返回json</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>OUT_MAPPING_JSON</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>字段映射</STEXT>
       </RSFDO>
      </DOCUMENTATION>
     </item>
     <item>
      <FUNCNAME>ZFM_BI_DATA_TABLE_GET</FUNCNAME>
      <REMOTE_CALL>R</REMOTE_CALL>
-     <SHORT_TEXT>ZFM_ZKKWTEST_ALV1</SHORT_TEXT>
      <IMPORT>
       <RSIMP>
        <PARAMETER>TABNAME</PARAMETER>
@@ -132,62 +124,50 @@
       <RSFDO>
        <PARAMETER>TABNAME</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>表名</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>WHERE_JSON</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>查询条件</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>RTYPE</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>消息类型: S 成功,E 错误,W 警告,I 信息,A 中断</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>RTMSG</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>消息文本</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>OUT_JSON</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>返回json</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>OUT_MAPPING_JSON</PARAMETER>
        <KIND>P</KIND>
-       <STEXT>字段映射</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>TABLE_NOT_AVAILABLE</PARAMETER>
        <KIND>X</KIND>
-       <STEXT>QUERY_TABLE nicht aktiv im Dictionary vorhanden</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>TABLE_WITHOUT_DATA</PARAMETER>
        <KIND>X</KIND>
-       <STEXT>QUERY_TABLE ist Name von Struktur o.ä.</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>OPTION_NOT_VALID</PARAMETER>
        <KIND>X</KIND>
-       <STEXT>Selektionsangaben (z.B. Syntax) fehlerhaft</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>FIELD_NOT_VALID</PARAMETER>
        <KIND>X</KIND>
-       <STEXT>zu lesendes Feld gibt es nicht in der Tabelle</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>NOT_AUTHORIZED</PARAMETER>
        <KIND>X</KIND>
-       <STEXT>Benutzer nicht ber. für Zugriff auf QUERY_TABLE</STEXT>
       </RSFDO>
       <RSFDO>
        <PARAMETER>DATA_BUFFER_EXCEEDED</PARAMETER>
        <KIND>X</KIND>
-       <STEXT>gewählte Felder passen nicht in Struktur DATA</STEXT>
       </RSFDO>
      </DOCUMENTATION>
     </item>
