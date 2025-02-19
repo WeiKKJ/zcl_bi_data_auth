@@ -4,13 +4,19 @@
   <asx:values>
    <VSEOCLASS>
     <CLSNAME>ZCL_BI_DATA_AUTH</CLSNAME>
-    <LANGU>E</LANGU>
-    <DESCRIPT>BI series data retrieval interface</DESCRIPT>
+    <LANGU>1</LANGU>
+    <DESCRIPT>BI系列取数接口</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>
     <UNICODE>X</UNICODE>
    </VSEOCLASS>
+   <DESCRIPTIONS_CLASS>
+    <SEOCLASSTX>
+     <LANGU>E</LANGU>
+     <DESCRIPT>BI series data retrieval interface</DESCRIPT>
+    </SEOCLASSTX>
+   </DESCRIPTIONS_CLASS>
    <DESCRIPTIONS>
     <SEOCOMPOTX>
      <CMPNAME>DATATYPESCONT</CMPNAME>

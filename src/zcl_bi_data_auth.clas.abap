@@ -665,7 +665,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
           EXCEPTION-TABLE exceptab.
         .
         CLEAR kind.
-        LOOP AT paramtab ASSIGNING <paramline> WHERE kind = abap_func_importing OR kind = abap_func_changing OR kind = abap_func_tables.
+        LOOP AT paramtab ASSIGNING <paramline> WHERE kind = abap_func_importing OR kind = abap_func_exporting OR kind = abap_func_changing OR kind = abap_func_tables.
           CASE <paramline>-kind.
             WHEN abap_func_importing.
               kind = 'E'.
