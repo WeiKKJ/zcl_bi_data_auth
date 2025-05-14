@@ -142,14 +142,18 @@ FUNCTION zfm_bi_data_alv_get.
       .
       "获取报表数据
       cl_salv_bs_runtime_info=>get_data_ref( IMPORTING r_data = ls_data ).
-      "获取字段名及其描述
-      DATA(metadata) = cl_salv_bs_runtime_info=>get_metadata( ).
     CATCH cx_root INTO DATA(exc).
       cl_salv_bs_runtime_info=>clear_all( ).
       rtype = 'E'.
       rtmsg = |获取[{ tcode }]的数据发生了异常：{ exc->get_text( ) }|.
       zfmdatasave2 'R'.
       RETURN.
+  ENDTRY.
+  "如果不展示alv直接获取metadata会发生异常
+  TRY.
+      "获取字段名及其描述
+      DATA(metadata) = cl_salv_bs_runtime_info=>get_metadata( ).
+    CATCH cx_root INTO exc.
   ENDTRY.
   cl_salv_bs_runtime_info=>clear_all( ).
   ASSIGN ls_data->* TO FIELD-SYMBOL(<fs_tab>).
