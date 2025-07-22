@@ -1,56 +1,58 @@
-CLASS zcl_bi_data_auth DEFINITION
-  PUBLIC
-  FINAL
-  CREATE PUBLIC .
+class ZCL_BI_DATA_AUTH definition
+  public
+  final
+  create public .
 
-  PUBLIC SECTION.
+public section.
 
-    INTERFACES if_http_extension .
+  interfaces IF_HTTP_EXTENSION .
 
-    CLASS-METHODS exec_rfc_crtdata
-      IMPORTING
-        VALUE(funcname)  TYPE tfdir-funcname
-        VALUE(interface) TYPE string
-      EXPORTING
-        VALUE(out_json)  TYPE string
-        VALUE(rtype)     TYPE bapi_mtype
-        VALUE(rtmsg)     TYPE bapi_msg .
+  class-methods EXEC_RFC_CRTDATA
+    importing
+      value(FUNCNAME) type TFDIR-FUNCNAME
+      value(INTERFACE) type STRING
+    exporting
+      value(OUT_JSON) type STRING
+      value(RTYPE) type BAPI_MTYPE
+      value(RTMSG) type BAPI_MSG .
+  class-methods GET_RSPARAMS
+    importing
+      value(TCODE) type SY-TCODE
+    exporting
+      value(T_RSPARAMS) type /CFG/RSPARAMS_TT
+      value(RSPARAMS) type STRING
+      value(PARAM) type RSVAR-REPORT
+    exceptions
+      TCODE_NOT_FOUND .
   PROTECTED SECTION.
-  PRIVATE SECTION.
+private section.
 
-    DATA my_service TYPE string .
-    DATA my_url TYPE string .
-    DATA my_params TYPE tihttpnvp .
-    DATA:
-      datatypescont TYPE TABLE OF rfc_metadata_ddic .
+  data MY_SERVICE type STRING .
+  data MY_URL type STRING .
+  data MY_PARAMS type TIHTTPNVP .
+  data:
+    datatypescont TYPE TABLE OF rfc_metadata_ddic .
 
-    METHODS get_rsparams
-      IMPORTING
-        VALUE(tcode)    TYPE sy-tcode
-      RETURNING
-        VALUE(rsparams) TYPE string
-      EXCEPTIONS
-        tcode_not_found .
-    METHODS get_interface
-      IMPORTING
-        VALUE(tabname)   TYPE tabname
-        VALUE(fieldname) TYPE fieldname OPTIONAL
-      RETURNING
-        VALUE(out_json)  TYPE string .
-    METHODS get_query
-      IMPORTING
-        VALUE(query_string) TYPE string
-        VALUE(key)          TYPE string
-      EXPORTING
-        VALUE(value)        TYPE string .
-    METHODS get_params
-      IMPORTING
-        VALUE(params)    TYPE string
-      RETURNING
-        VALUE(my_params) TYPE tihttpnvp .
-    METHODS notes
-      RETURNING
-        VALUE(text) TYPE string .
+  methods GET_INTERFACE
+    importing
+      value(TABNAME) type TABNAME
+      value(FIELDNAME) type FIELDNAME optional
+    returning
+      value(OUT_JSON) type STRING .
+  methods GET_QUERY
+    importing
+      value(QUERY_STRING) type STRING
+      value(KEY) type STRING
+    exporting
+      value(VALUE) type STRING .
+  methods GET_PARAMS
+    importing
+      value(PARAMS) type STRING
+    returning
+      value(MY_PARAMS) type TIHTTPNVP .
+  methods NOTES
+    returning
+      value(TEXT) type STRING .
 ENDCLASS.
 
 
@@ -94,21 +96,31 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
 
 
   METHOD get_rsparams.
-    DATA: gt_rsparams TYPE TABLE OF rsparams.
-    SELECT SINGLE * FROM tstc
-      WHERE tcode = @tcode
-      INTO @DATA(wa_tstc)
-            .
-    IF sy-subrc NE 0.
-      RAISE tcode_not_found.
+    DATA:t_param TYPE TABLE OF tstcp-param.
+
+    SELECT SINGLE param FROM tstcp WHERE tcode = @tcode INTO @DATA(param_l).
+    IF sy-subrc EQ 0.
+      SPLIT param_l AT space INTO TABLE t_param.
+      IF lines( t_param ) GE 2.
+        SPLIT t_param[ 2 ] AT ';' INTO TABLE t_param.
+        READ TABLE t_param INTO DATA(w_prog) WITH KEY table_line(19) = 'D_SREPOVARI-REPORT='.
+        IF sy-subrc EQ 0.
+          SPLIT w_prog AT '=' INTO DATA(a) param .
+        ENDIF.
+      ENDIF.
+    ELSE.
+      SELECT SINGLE pgmna FROM tstc WHERE tcode = @tcode INTO @param.
+      IF sy-subrc NE 0.
+        RAISE tcode_not_found.
+      ENDIF.
     ENDIF.
     CALL FUNCTION 'RS_REFRESH_FROM_SELECTOPTIONS'
       EXPORTING
-        curr_report     = wa_tstc-pgmna
+        curr_report     = param
 * IMPORTING
 *       SP              =
       TABLES
-        selection_table = gt_rsparams
+        selection_table = t_rsparams
 *       selection_table_255 = gt_rsparams_255
       EXCEPTIONS
         not_found       = 1
@@ -117,7 +129,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
     IF sy-subrc NE 0.
       RAISE tcode_not_found.
     ENDIF.
-    rsparams = /ui2/cl_json=>serialize( data = gt_rsparams  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-camel_case ).
+    rsparams = /ui2/cl_json=>serialize( data = t_rsparams  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-camel_case ).
   ENDMETHOD.
 
 
@@ -135,6 +147,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
          rtype            TYPE bapi_mtype,
          rtmsg            TYPE bapi_msg,
          tcode            TYPE sy-tcode,
+         param            TYPE tstcp-param,
          tabname          TYPE tabname,
          funcname         TYPE rs38l_fnam,
          proto            TYPE string,
@@ -264,6 +277,10 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
         IF sy-subrc EQ 0.
           tcode = to_upper( my_param-value ).
         ENDIF.
+        READ TABLE my_params INTO my_param WITH KEY name = 'param' .
+        IF sy-subrc EQ 0.
+          param = to_upper( my_param-value ).
+        ENDIF.
         READ TABLE my_params INTO my_param WITH KEY name = 'tabname' .
         IF sy-subrc EQ 0.
           tabname = to_upper( my_param-value ).
@@ -283,7 +300,7 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
             CALL METHOD me->get_rsparams
               EXPORTING
                 tcode           = tcode
-              RECEIVING
+              IMPORTING
                 rsparams        = DATA(rsparams)
               EXCEPTIONS
                 tcode_not_found = 1

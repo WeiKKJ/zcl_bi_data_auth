@@ -39,26 +39,16 @@ FUNCTION zfm_bi_data_alv_get.
     rtmsg = |你没有事务码[{ tcode }]的权限|.
     fillmsg 'E' rtmsg.
   ENDIF.
-  SELECT SINGLE * FROM tstc
-    WHERE tcode = @tcode
-    INTO @DATA(wa_tstc)
-          .
-  IF sy-subrc NE 0.
-    rtmsg = |tcode:[{ tcode }]不存在|.
-    fillmsg 'E' rtmsg.
-  ENDIF.
-  CALL FUNCTION 'RS_REFRESH_FROM_SELECTOPTIONS'
+
+  CALL METHOD zcl_bi_data_auth=>get_rsparams
     EXPORTING
-      curr_report     = wa_tstc-pgmna
-* IMPORTING
-*     SP              =
-    TABLES
-      selection_table = gt_rsparams
-*     selection_table_255 = gt_rsparams_255
+      tcode           = tcode
+    IMPORTING
+      t_rsparams      = gt_rsparams
+      param           = DATA(param)
     EXCEPTIONS
-      not_found       = 1
-      no_report       = 2
-      OTHERS          = 3.
+      tcode_not_found = 1
+      OTHERS          = 2.
   IF sy-subrc <> 0.
     rtmsg = |tcode:[{ tcode }]获取选择屏幕参数出现问题|.
     fillmsg 'E' rtmsg.
@@ -136,7 +126,7 @@ FUNCTION zfm_bi_data_alv_get.
 
   cl_salv_bs_runtime_info=>set( display = abap_false metadata = abap_true data = abap_true ).
   TRY.
-      SUBMIT (wa_tstc-pgmna) TO SAP-SPOOL SPOOL PARAMETERS pri_params WITHOUT SPOOL DYNPRO
+      SUBMIT (param) TO SAP-SPOOL SPOOL PARAMETERS pri_params WITHOUT SPOOL DYNPRO
       WITH SELECTION-TABLE seltab
       AND RETURN
       .

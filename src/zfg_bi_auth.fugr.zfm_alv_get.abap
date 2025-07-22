@@ -19,12 +19,12 @@ FUNCTION zfm_alv_get.
     rtype = 'E'.
     RETURN.
   ENDIF.
-  AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TCD' FIELD tcode.
-  IF sy-subrc NE 0.
-    rtmsg = |你没有事务码[{ tcode }]的权限|.
-    rtype = 'E'.
-    RETURN.
-  ENDIF.
+*  AUTHORITY-CHECK OBJECT 'ZBI_AUTH' ID 'TCD' FIELD tcode.
+*  IF sy-subrc NE 0.
+*    rtmsg = |你没有事务码[{ tcode }]的权限|.
+*    rtype = 'E'.
+*    RETURN.
+*  ENDIF.
   SELECT SINGLE * FROM tstc
     WHERE tcode = @tcode
     INTO @DATA(wa_tstc)
