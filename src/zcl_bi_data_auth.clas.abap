@@ -108,7 +108,8 @@ CLASS ZCL_BI_DATA_AUTH IMPLEMENTATION.
           SPLIT w_prog AT '=' INTO DATA(a) param .
         ENDIF.
       ENDIF.
-    ELSE.
+    ENDIF.
+    IF param IS INITIAL.
       SELECT SINGLE pgmna FROM tstc WHERE tcode = @tcode INTO @param.
       IF sy-subrc NE 0.
         RAISE tcode_not_found.
