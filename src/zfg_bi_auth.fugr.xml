@@ -76,6 +76,72 @@
      </DOCUMENTATION>
     </item>
     <item>
+     <FUNCNAME>ZFM_ALV_GET_NOC</FUNCNAME>
+     <SHORT_TEXT>获取ALV报表数据</SHORT_TEXT>
+     <IMPORT>
+      <RSIMP>
+       <PARAMETER>TCODE</PARAMETER>
+       <TYP>SY-TCODE</TYP>
+      </RSIMP>
+     </IMPORT>
+     <EXPORT>
+      <RSEXP>
+       <PARAMETER>DATA</PARAMETER>
+       <TYP>REF TO DATA</TYP>
+       <REF_CLASS>X</REF_CLASS>
+      </RSEXP>
+      <RSEXP>
+       <PARAMETER>METADATA</PARAMETER>
+       <TYP>CL_SALV_BS_RUNTIME_INFO=&gt;S_TYPE_METADATA</TYP>
+      </RSEXP>
+      <RSEXP>
+       <PARAMETER>RTYPE</PARAMETER>
+       <TYP>BAPI_MTYPE</TYP>
+      </RSEXP>
+      <RSEXP>
+       <PARAMETER>RTMSG</PARAMETER>
+       <TYP>BAPI_MSG</TYP>
+      </RSEXP>
+     </EXPORT>
+     <TABLES>
+      <RSTBL>
+       <PARAMETER>SELTAB</PARAMETER>
+       <DBSTRUCT>RSPARAMS</DBSTRUCT>
+       <OPTIONAL>X</OPTIONAL>
+      </RSTBL>
+     </TABLES>
+     <DOCUMENTATION>
+      <RSFDO>
+       <PARAMETER>TCODE</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>ABAP 系统字段：当前事务代码</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>DATA</PARAMETER>
+       <KIND>P</KIND>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>METADATA</PARAMETER>
+       <KIND>P</KIND>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>RTYPE</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>消息类型: S 成功,E 错误,W 警告,I 信息,A 中断</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>RTMSG</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>消息文本</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>SELTAB</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>ABAP: PARAMETERS 和 SELECT-OPTIONS 的通用结构</STEXT>
+      </RSFDO>
+     </DOCUMENTATION>
+    </item>
+    <item>
      <FUNCNAME>ZFM_BI_DATA_ALV_GET</FUNCNAME>
      <REMOTE_CALL>R</REMOTE_CALL>
      <SHORT_TEXT>ZFM_ZKKWTEST_ALV1</SHORT_TEXT>

@@ -24,6 +24,11 @@ public section.
       value(PARAM) type RSVAR-REPORT
     exceptions
       TCODE_NOT_FOUND .
+  class-methods GET_PARAMS
+    importing
+      value(PARAMS) type STRING
+    returning
+      value(MY_PARAMS) type TIHTTPNVP .
   PROTECTED SECTION.
 private section.
 
@@ -33,23 +38,18 @@ private section.
   data:
     datatypescont TYPE TABLE OF rfc_metadata_ddic .
 
-  methods GET_INTERFACE
-    importing
-      value(TABNAME) type TABNAME
-      value(FIELDNAME) type FIELDNAME optional
-    returning
-      value(OUT_JSON) type STRING .
   methods GET_QUERY
     importing
       value(QUERY_STRING) type STRING
       value(KEY) type STRING
     exporting
       value(VALUE) type STRING .
-  methods GET_PARAMS
+  methods GET_INTERFACE
     importing
-      value(PARAMS) type STRING
+      value(TABNAME) type TABNAME
+      value(FIELDNAME) type FIELDNAME optional
     returning
-      value(MY_PARAMS) type TIHTTPNVP .
+      value(OUT_JSON) type STRING .
   methods NOTES
     returning
       value(TEXT) type STRING .
