@@ -89,7 +89,7 @@ FUNCTION zfm_bi_data_table_get .
     ENDTRY.
     rtype = 'S'.
     IF <tab> IS NOT INITIAL.
-      rtmsg = |成功获取[{ tabname }]的数据|.
+      rtmsg = |成功获取[{ tabname }]的数据,条目数[{ lines( <tab> ) }]|.
       out_json = /ui2/cl_json=>serialize( data = <tab>  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
       " 添加底表字段映射信息  13.03.2024 22:34:58 by kkw
       tablename = tabname.

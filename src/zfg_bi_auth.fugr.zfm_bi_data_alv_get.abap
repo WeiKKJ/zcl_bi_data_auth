@@ -29,6 +29,7 @@ FUNCTION zfm_bi_data_alv_get.
          scrtext_s TYPE scrtext_s,
        END OF gs_mapping,
        gt_mapping LIKE TABLE OF gs_mapping.
+  FIELD-SYMBOLS:<fs_tab> TYPE STANDARD TABLE.
   CLEAR:rtype,rtmsg,out_json,out_mapping_json.
   IF tcode IS INITIAL.
     rtmsg = 'tcode不能为空'.
@@ -146,7 +147,7 @@ FUNCTION zfm_bi_data_alv_get.
     CATCH cx_root INTO exc.
   ENDTRY.
   cl_salv_bs_runtime_info=>clear_all( ).
-  ASSIGN ls_data->* TO FIELD-SYMBOL(<fs_tab>).
+  ASSIGN ls_data->* TO <fs_tab>.
   IF metadata-t_fcat IS NOT INITIAL.
     LOOP AT metadata-t_fcat ASSIGNING FIELD-SYMBOL(<dfies_tab>).
       INSERT INITIAL LINE INTO TABLE gt_mapping ASSIGNING FIELD-SYMBOL(<gt_mapping>).
@@ -164,7 +165,7 @@ FUNCTION zfm_bi_data_alv_get.
   IF <fs_tab> IS ASSIGNED.
     rtype = 'S'.
     IF <fs_tab> IS NOT INITIAL.
-      rtmsg = |成功获取[{ tcode }]的数据|.
+      rtmsg = |成功获取[{ tcode }]的数据,条目数[{ lines( <fs_tab> ) }]|.
       out_json = /ui2/cl_json=>serialize( data = <fs_tab>  compress = abap_false pretty_name = /ui2/cl_json=>pretty_mode-low_case ).
     ELSE.
       rtmsg = |[{ tcode }]空数据|.
